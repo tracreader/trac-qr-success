@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code</title>
+  <script src="https://unpkg.com/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <style>
+    body { background: black; color: #FFFF00; font-family: Arial; text-align: center; padding: 40px; margin: 0; }
+    .qr-wrapper { background: white; padding: 40px; display: inline-block; border-radius: 20px; margin: 30px 0; }
+    #code { font-size: 2em; font-weight: bold; margin: 30px 0; }
+    button { padding: 25px 50px; font-size: 2em; background: #FFFF00; color: black; border: none; border-radius: 15px; cursor: pointer; margin: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+    button:hover { background: #FFFF99; }
+  </style>
+</head>
+<body>
+  <div class="qr-wrapper" id="qrContainer"></div>
+  <div id="code"></div>
+  <button id="downloadBtn">Download QR to Phone</button>
+  <script>
+    const SECRET = "TracReader2025!SuperSecretKey#987";
+
+    async function generateHMAC(message) {
+      const enc = new TextEncoder();
+      const key = await crypto.subtle.importKey("raw", enc.encode(SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+      const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
+      return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session_id');
+    const machineId = urlParams.get('client_reference_id') || '0243';
+    const amountStr = urlParams.get('amount') || '1.39';
+    const amount = parseFloat(amountStr);
+    const playsMap = { 1.39: 1, 3.39: 3, 5.39: 5, 10.39: 10 };
+    const plays = playsMap[amount] || 1;
+
+    if (!sessionId) {
+      document.getElementById("qrContainer").innerHTML = '';
+      document.getElementById('code').textContent = '';
+      document.getElementById('downloadBtn').style.display = 'none';
+    } else {
+      generateHMAC(sessionId).then(sessionHash => {
+        const randomId = sessionHash.substring(0, 4).toUpperCase();
+
+        const dataToSign = `${plays}|${machineId}${randomId}`;
+
+        generateHMAC(dataToSign).then(hash => {
+          const shortSig = hash.substring(0, 4).toUpperCase();
+          const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
+
+          document.getElementById('code').textContent = code;
+          document.getElementById("qrContainer").innerHTML = "";
+          new QRCode(document.getElementById("qrContainer"), {
+            text: code,
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#FFFFFF",
+            correctLevel: QRCode.CorrectLevel.H
+          });
+
+          document.getElementById('downloadBtn').onclick = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 440;
+            canvas.height = 520;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const qrCanvas = document.querySelector('#qrContainer canvas');
+            ctx.drawImage(qrCanvas, 40, 40, 360, 360);
+            ctx.fillStyle = 'black';
+            ctx.font = 'bold 30px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(code, canvas.width / 2, 460);
+            const url = canvas.toDataURL('image/png');
+            const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Trac-QR-${machineId}-${plays}plays-${randomSuffix}.png`;
+            a.click();
+          };
+        });
+      });
+    }
+  </script>
+</body>
+</html>
