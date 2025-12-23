@@ -11,7 +11,6 @@
     #code { font-size: 2em; font-weight: bold; margin: 30px 0; }
     button { padding: 25px 50px; font-size: 2em; background: #FFFF00; color: black; border: none; border-radius: 15px; cursor: pointer; margin: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
     button:hover { background: #FFFF99; }
-    button:disabled { background: #666666; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -29,80 +28,74 @@
     }
 
     const urlParams = new URLSearchParams(window.location.search);
-    const sessionId = urlParams.get('session_id');
-    const amountStr = urlParams.get('amount');
+    const gib = urlParams.get('gib'); // the full gibberish string from Stripe
 
-    const validAmounts = new Set(['1.39', '3.39', '5.39', '10.39']);
     const playsMap = { '1.39': 1, '3.39': 3, '5.39': 5, '10.39': 10 };
     const machineId = '0243';
 
-    const isValidSession = sessionId && (sessionId.startsWith('cs_test_') || sessionId.startsWith('cs_live_'));
-    const isValidAmount = amountStr && validAmounts.has(amountStr);
-
-    if (!isValidSession || !isValidAmount) {
+    if (!gib || gib.length < 50) { // very short gib = invalid
       document.getElementById("qrContainer").innerHTML = '';
       document.getElementById('code').textContent = '';
       document.getElementById('downloadBtn').style.display = 'none';
     } else {
-      const plays = playsMap[amountStr];
+      // Use the full gibberish string as seed — includes the embedded first 4 digits of session_id
+      generateHMAC(gib).then(gibHash => {
+        const randomId = gibHash.substring(0, 4).toUpperCase();
 
-      generateHMAC(sessionId).then(sessionHash => {
-        const randomId = sessionHash.substring(0, 4).toUpperCase();
+        // Determine plays from the length or a marker in gibberish (example: first char indicates amount)
+        // Here we use a simple mapping based on a fixed marker in your gibberish templates
+        // You will set different prefixes for each amount
+        let plays;
+        if (gib.startsWith('a1b2c3')) plays = 1;       // $1.39 template
+        else if (gib.startsWith('d4e5f6')) plays = 3; // $3.39
+        else if (gib.startsWith('g7h8i9')) plays = 5; // $5.39
+        else if (gib.startsWith('j0k1l2')) plays = 10; // $10.39
+        else plays = 0; // invalid
 
-        const dataToSign = `${plays}|${machineId}${randomId}`;
+        if (plays === 0) {
+          document.getElementById("qrContainer").innerHTML = '';
+          document.getElementById('code').textContent = '';
+          document.getElementById('downloadBtn').style.display = 'none';
+        } else {
+          const dataToSign = `${plays}|${machineId}${randomId}`;
 
-        generateHMAC(dataToSign).then(hash => {
-          const shortSig = hash.substring(0, 4).toUpperCase();
-          const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
+          generateHMAC(dataToSign).then(hash => {
+            const shortSig = hash.substring(0, 4).toUpperCase();
+            const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
 
-          document.getElementById('code').textContent = code;
-          document.getElementById("qrContainer").innerHTML = "";
-          new QRCode(document.getElementById("qrContainer"), {
-            text: code,
-            width: 200,
-            height: 200,
-            colorDark: "#000000",
-            colorLight: "#FFFFFF",
-            correctLevel: QRCode.CorrectLevel.H
+            document.getElementById('code').textContent = code;
+            document.getElementById("qrContainer").innerHTML = "";
+            new QRCode(document.getElementById("qrContainer"), {
+              text: code,
+              width: 200,
+              height: 200,
+              colorDark: "#000000",
+              colorLight: "#FFFFFF",
+              correctLevel: QRCode.CorrectLevel.H
+            });
+
+            document.getElementById('downloadBtn').onclick = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = 440;
+              canvas.height = 520;
+              const ctx = canvas.getContext('2d');
+              ctx.fillStyle = 'white';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              const qrCanvas = document.querySelector('#qrContainer canvas');
+              ctx.drawImage(qrCanvas, 40, 40, 360, 360);
+              ctx.fillStyle = 'black';
+              ctx.font = 'bold 30px Arial';
+              ctx.textAlign = 'center';
+              ctx.fillText(code, canvas.width / 2, 460);
+              const url = canvas.toDataURL('image/png');
+              const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `Trac-QR-${machineId}-${plays}plays-${randomSuffix}.png`;
+              a.click();
+            };
           });
-
-          const btn = document.getElementById('downloadBtn');
-          const downloadKey = 'downloaded_' + sessionId;
-
-          if (sessionStorage.getItem(downloadKey)) {
-            btn.disabled = true;
-            btn.textContent = 'Downloaded';
-          }
-
-          btn.onclick = () => {
-            if (sessionStorage.getItem(downloadKey)) {
-              return;
-            }
-
-            const canvas = document.createElement('canvas');
-            canvas.width = 440;
-            canvas.height = 520;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            const qrCanvas = document.querySelector('#qrContainer canvas');
-            ctx.drawImage(qrCanvas, 40, 40, 360, 360);
-            ctx.fillStyle = 'black';
-            ctx.font = 'bold 30px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(code, canvas.width / 2, 460);
-            const url = canvas.toDataURL('image/png');
-            const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Trac-QR-${machineId}-${plays}plays-${randomSuffix}.png`;
-            a.click();
-
-            sessionStorage.setItem(downloadKey, 'true');
-            btn.disabled = true;
-            btn.textContent = 'Downloaded';
-          };
-        });
+        }
       });
     }
   </script>
