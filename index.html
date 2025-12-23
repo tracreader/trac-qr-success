@@ -35,7 +35,6 @@
     const playsMap = { '1.39': 1, '3.39': 3, '5.39': 5, '10.39': 10 };
     const machineId = '0243';
 
-    // Validation: session_id must have correct prefix, amount must be exact string
     const isValidSession = sessionId && (sessionId.startsWith('cs_test_') || sessionId.startsWith('cs_live_'));
     const isValidAmount = amountStr && validAmounts.has(amountStr);
 
