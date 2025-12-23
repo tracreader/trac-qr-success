@@ -30,18 +30,16 @@
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get('session_id');
     const amountStr = urlParams.get('amount');
-    const amount = parseFloat(amountStr);
 
-    const validAmounts = ['1.39', '3.39', '5.39', '10.39'];
+    const validAmounts = new Set(['1.39', '3.39', '5.39', '10.39']);
     const playsMap = { '1.39': 1, '3.39': 3, '5.39': 5, '10.39': 10 };
-    const plays = playsMap[amountStr] || 0;
+    const plays = playsMap[amountStr];
     const machineId = '0243';
 
-    // Strict validation: must have valid session_id AND exact valid amount string
     const isValidSession = sessionId && (sessionId.startsWith('cs_test_') || sessionId.startsWith('cs_live_'));
-    const isValidAmount = validAmounts.includes(amountStr);
+    const isValidAmount = amountStr && validAmounts.has(amountStr);
 
-    if (!isValidSession || !isValidAmount) {
+    if (!isValidSession || !isValidAmount || plays === undefined) {
       document.getElementById("qrContainer").innerHTML = '';
       document.getElementById('code').textContent = '';
       document.getElementById('downloadBtn').style.display = 'none';
