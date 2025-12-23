@@ -28,7 +28,7 @@
     }
 
     const urlParams = new URLSearchParams(window.location.search);
-    const gib = urlParams.get('d'); // random short param name
+    const gib = urlParams.get('d');
 
     const machineId = '0243';
 
@@ -37,10 +37,16 @@
       document.getElementById('code').textContent = '';
       document.getElementById('downloadBtn').style.display = 'none';
     } else {
-      generateHMAC(gib).then(gibHash => {
-        const randomId = gibHash.substring(0, 4).toUpperCase();
+      // Extract the first 4 digits after 'cs_test_' (case insensitive)
+      const sessionMatch = gib.match(/cs_test_([a-zA-Z0-9]{4})/i);
+      if (!sessionMatch) {
+        document.getElementById("qrContainer").innerHTML = '';
+        document.getElementById('code').textContent = '';
+        document.getElementById('downloadBtn').style.display = 'none';
+      } else {
+        const embedded4 = sessionMatch[1].toUpperCase();
 
-        // Determine plays from fixed prefix in your gibberish template
+        // Determine plays from fixed prefix/suffix in your gibberish template
         let plays;
         if (gib.startsWith('jdfjrgfofjjcrfhnjrsvhyriu') && gib.endsWith('48473ydfshfrjhffr84948r7c48n989te8cfrhnffrh')) plays = 1; // $1.39
         else if (gib.startsWith('kldffrcunrkjnjk38548449348fjskfhn5rhufsiodjfiae834jeh4') && gib.endsWith('moregibberish999999')) plays = 3; // $3.39
@@ -53,46 +59,51 @@
           document.getElementById('code').textContent = '';
           document.getElementById('downloadBtn').style.display = 'none';
         } else {
-          const dataToSign = `${plays}|${machineId}${randomId}`;
+          // Use the full gib string as seed (includes the embedded 4 digits)
+          generateHMAC(gib).then(gibHash => {
+            const randomId = gibHash.substring(0, 4).toUpperCase();
 
-          generateHMAC(dataToSign).then(hash => {
-            const shortSig = hash.substring(0, 4).toUpperCase();
-            const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
+            const dataToSign = `${plays}|${machineId}${randomId}`;
 
-            document.getElementById('code').textContent = code;
-            document.getElementById("qrContainer").innerHTML = "";
-            new QRCode(document.getElementById("qrContainer"), {
-              text: code,
-              width: 200,
-              height: 200,
-              colorDark: "#000000",
-              colorLight: "#FFFFFF",
-              correctLevel: QRCode.CorrectLevel.H
+            generateHMAC(dataToSign).then(hash => {
+              const shortSig = hash.substring(0, 4).toUpperCase();
+              const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
+
+              document.getElementById('code').textContent = code;
+              document.getElementById("qrContainer").innerHTML = "";
+              new QRCode(document.getElementById("qrContainer"), {
+                text: code,
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#FFFFFF",
+                correctLevel: QRCode.CorrectLevel.H
+              });
+
+              document.getElementById('downloadBtn').onclick = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 440;
+                canvas.height = 520;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                const qrCanvas = document.querySelector('#qrContainer canvas');
+                ctx.drawImage(qrCanvas, 40, 40, 360, 360);
+                ctx.fillStyle = 'black';
+                ctx.font = 'bold 30px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(code, canvas.width / 2, 460);
+                const url = canvas.toDataURL('image/png');
+                const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Trac-QR-${machineId}-${plays}plays-${randomSuffix}.png`;
+                a.click();
+              };
             });
-
-            document.getElementById('downloadBtn').onclick = () => {
-              const canvas = document.createElement('canvas');
-              canvas.width = 440;
-              canvas.height = 520;
-              const ctx = canvas.getContext('2d');
-              ctx.fillStyle = 'white';
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
-              const qrCanvas = document.querySelector('#qrContainer canvas');
-              ctx.drawImage(qrCanvas, 40, 40, 360, 360);
-              ctx.fillStyle = 'black';
-              ctx.font = 'bold 30px Arial';
-              ctx.textAlign = 'center';
-              ctx.fillText(code, canvas.width / 2, 460);
-              const url = canvas.toDataURL('image/png');
-              const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `Trac-QR-${machineId}-${plays}plays-${randomSuffix}.png`;
-              a.click();
-            };
           });
         }
-      });
+      }
     }
   </script>
 </body>
