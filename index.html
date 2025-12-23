@@ -45,6 +45,7 @@
     } else {
       const plays = playsMap[amountStr];
 
+      // Deterministic randomId from session_id ONLY
       generateHMAC(sessionId).then(sessionHash => {
         const randomId = sessionHash.substring(0, 4).toUpperCase();
 
