@@ -28,29 +28,25 @@
     }
 
     const urlParams = new URLSearchParams(window.location.search);
-    const gib = urlParams.get('gib'); // the full gibberish string from Stripe
+    const gib = urlParams.get('gib');
 
-    const playsMap = { '1.39': 1, '3.39': 3, '5.39': 5, '10.39': 10 };
     const machineId = '0243';
 
-    if (!gib || gib.length < 50) { // very short gib = invalid
+    if (!gib) {
       document.getElementById("qrContainer").innerHTML = '';
       document.getElementById('code').textContent = '';
       document.getElementById('downloadBtn').style.display = 'none';
     } else {
-      // Use the full gibberish string as seed — includes the embedded first 4 digits of session_id
       generateHMAC(gib).then(gibHash => {
         const randomId = gibHash.substring(0, 4).toUpperCase();
 
-        // Determine plays from the length or a marker in gibberish (example: first char indicates amount)
-        // Here we use a simple mapping based on a fixed marker in your gibberish templates
-        // You will set different prefixes for each amount
+        // Determine plays from a fixed marker in your gibberish template
         let plays;
-        if (gib.startsWith('a1b2c3')) plays = 1;       // $1.39 template
+        if (gib.startsWith('a1b2c3')) plays = 1; // $1.39 template
         else if (gib.startsWith('d4e5f6')) plays = 3; // $3.39
         else if (gib.startsWith('g7h8i9')) plays = 5; // $5.39
         else if (gib.startsWith('j0k1l2')) plays = 10; // $10.39
-        else plays = 0; // invalid
+        else plays = 0;
 
         if (plays === 0) {
           document.getElementById("qrContainer").innerHTML = '';
