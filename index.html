@@ -28,7 +28,7 @@
     }
 
     const urlParams = new URLSearchParams(window.location.search);
-    const gib = urlParams.get('gib');
+    const gib = urlParams.get('d'); // random short param name
 
     const machineId = '0243';
 
@@ -42,10 +42,10 @@
 
         // Determine plays from fixed prefix in your gibberish template
         let plays;
-        if (gib.startsWith('0000000000000000000000000000000000') && gib.endsWith('0000000000000000')) plays = 1; // $1.39
-        else if (gib.startsWith('1111111111111111111111111111111111') && gib.endsWith('111111111111111111111')) plays = 3; // $3.39
-        else if (gib.startsWith('2222222222222222222222222222222222') && gib.endsWith('2222222222222222')) plays = 5; // $5.39
-        else if (gib.startsWith('3333333333333333333333333333333333') && gib.endsWith('333333333333333333333')) plays = 10; // $10.39
+        if (gib.startsWith('jdfjrgfofjjcrfhnjrsvhyriu') && gib.endsWith('48473ydfshfrjhffr84948r7c48n989te8cfrhnffrh')) plays = 1; // $1.39
+        else if (gib.startsWith('kldffrcunrkjnjk38548449348fjskfhn5rhufsiodjfiae834jeh4') && gib.endsWith('moregibberish999999')) plays = 3; // $3.39
+        else if (gib.startsWith('g7h8i9jkl012mno345pqr678stu901vwx234yza567') && gib.endsWith('evenmoregibberish123456')) plays = 5; // $5.39
+        else if (gib.startsWith('j0k1l2mno345pqr678stu901vwx234yza567bcd890') && gib.endsWith('finalgibberishabcdef')) plays = 10; // $10.39
         else plays = 0;
 
         if (plays === 0) {
