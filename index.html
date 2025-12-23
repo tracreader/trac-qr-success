@@ -36,7 +36,6 @@
     const plays = playsMap[amountStr] || 0;
     const machineId = '0243';
 
-    // Super-strict validation
     const isValidSession = sessionId && (sessionId.startsWith('cs_test_') || sessionId.startsWith('cs_live_'));
     const isValidAmount = validAmounts.has(amountStr);
 
@@ -45,7 +44,6 @@
       document.getElementById('code').textContent = '';
       document.getElementById('downloadBtn').style.display = 'none';
     } else {
-      // Deterministic randomId from session_id
       generateHMAC(sessionId).then(sessionHash => {
         const randomId = sessionHash.substring(0, 4).toUpperCase();
 
