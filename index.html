@@ -11,6 +11,7 @@
     #code { font-size: 2em; font-weight: bold; margin: 30px 0; }
     button { padding: 25px 50px; font-size: 2em; background: #FFFF00; color: black; border: none; border-radius: 15px; cursor: pointer; margin: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
     button:hover { background: #FFFF99; }
+    button:disabled { background: #666666; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -45,7 +46,6 @@
     } else {
       const plays = playsMap[amountStr];
 
-      // Deterministic randomId from session_id ONLY
       generateHMAC(sessionId).then(sessionHash => {
         const randomId = sessionHash.substring(0, 4).toUpperCase();
 
@@ -66,7 +66,19 @@
             correctLevel: QRCode.CorrectLevel.H
           });
 
-          document.getElementById('downloadBtn').onclick = () => {
+          const btn = document.getElementById('downloadBtn');
+          const downloadKey = 'downloaded_' + sessionId;
+
+          if (sessionStorage.getItem(downloadKey)) {
+            btn.disabled = true;
+            btn.textContent = 'Downloaded';
+          }
+
+          btn.onclick = () => {
+            if (sessionStorage.getItem(downloadKey)) {
+              return;
+            }
+
             const canvas = document.createElement('canvas');
             canvas.width = 440;
             canvas.height = 520;
@@ -85,6 +97,10 @@
             a.href = url;
             a.download = `Trac-QR-${machineId}-${plays}plays-${randomSuffix}.png`;
             a.click();
+
+            sessionStorage.setItem(downloadKey, 'true');
+            btn.disabled = true;
+            btn.textContent = 'Downloaded';
           };
         });
       });
