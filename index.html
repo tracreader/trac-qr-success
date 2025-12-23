@@ -40,12 +40,12 @@
       generateHMAC(gib).then(gibHash => {
         const randomId = gibHash.substring(0, 4).toUpperCase();
 
-        // Determine plays from a fixed marker in your gibberish template
+        // Determine plays from fixed prefix in your gibberish template
         let plays;
-        if (gib.startsWith('a1b2c3')) plays = 1; // $1.39 template
-        else if (gib.startsWith('d4e5f6')) plays = 3; // $3.39
-        else if (gib.startsWith('g7h8i9')) plays = 5; // $5.39
-        else if (gib.startsWith('j0k1l2')) plays = 10; // $10.39
+        if (gib.startsWith('0000000000000000000000000000000000') && gib.endsWith('0000000000000000')) plays = 1; // $1.39
+        else if (gib.startsWith('1111111111111111111111111111111111') && gib.endsWith('111111111111111111111')) plays = 3; // $3.39
+        else if (gib.startsWith('2222222222222222222222222222222222') && gib.endsWith('2222222222222222')) plays = 5; // $5.39
+        else if (gib.startsWith('3333333333333333333333333333333333') && gib.endsWith('333333333333333333333')) plays = 10; // $10.39
         else plays = 0;
 
         if (plays === 0) {
