@@ -28,82 +28,64 @@
     }
 
     const urlParams = new URLSearchParams(window.location.search);
-    const gib = urlParams.get('d');
+    const t = urlParams.get('t') || '';
 
     const machineId = '0243';
 
-    if (!gib) {
+    // Your exact template (prefix + 10 digits timestamp + suffix)
+    const expectedPrefix = '938294059382749498585749382940593827494985857400000000000000000000';
+    const expectedSuffix = '000000000000000000004939383849495050594938384949595493829405938274';
+    const expectedLength = expectedPrefix.length + 10 + expectedSuffix.length;
+
+    if (t.length !== expectedLength || !t.startsWith(expectedPrefix) || !t.endsWith(expectedSuffix)) {
       document.getElementById("qrContainer").innerHTML = '';
       document.getElementById('code').textContent = '';
       document.getElementById('downloadBtn').style.display = 'none';
     } else {
-      // Extract the first 4 digits after 'cs_test_' (case insensitive)
-      const sessionMatch = gib.match(/cs_test_([a-zA-Z0-9]{4})/i);
-      if (!sessionMatch) {
-        document.getElementById("qrContainer").innerHTML = '';
-        document.getElementById('code').textContent = '';
-        document.getElementById('downloadBtn').style.display = 'none';
-      } else {
-        const embedded4 = sessionMatch[1].toUpperCase();
+      const plays = 1; // $1.39 test
 
-        // Determine plays from fixed prefix/suffix in your gibberish template
-        let plays;
-        if (gib.startsWith('jdfjrgfofjjcrfhnjrsvhyriu') && gib.endsWith('48473ydfshfrjhffr84948r7c48n989te8cfrhnffrh')) plays = 1; // $1.39
-        else if (gib.startsWith('kldffrcunrkjnjk38548449348fjskfhn5rhufsiodjfiae834jeh4') && gib.endsWith('moregibberish999999')) plays = 3; // $3.39
-        else if (gib.startsWith('g7h8i9jkl012mno345pqr678stu901vwx234yza567') && gib.endsWith('evenmoregibberish123456')) plays = 5; // $5.39
-        else if (gib.startsWith('j0k1l2mno345pqr678stu901vwx234yza567bcd890') && gib.endsWith('finalgibberishabcdef')) plays = 10; // $10.39
-        else plays = 0;
+      generateHMAC(t).then(tHash => {
+        const randomId = tHash.substring(0, 4).toUpperCase();
 
-        if (plays === 0) {
-          document.getElementById("qrContainer").innerHTML = '';
-          document.getElementById('code').textContent = '';
-          document.getElementById('downloadBtn').style.display = 'none';
-        } else {
-          // Use the full gib string as seed (includes the embedded 4 digits)
-          generateHMAC(gib).then(gibHash => {
-            const randomId = gibHash.substring(0, 4).toUpperCase();
+        const dataToSign = `${plays}|${machineId}${randomId}`;
 
-            const dataToSign = `${plays}|${machineId}${randomId}`;
+        generateHMAC(dataToSign).then(hash => {
+          const shortSig = hash.substring(0, 4).toUpperCase();
+          const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
 
-            generateHMAC(dataToSign).then(hash => {
-              const shortSig = hash.substring(0, 4).toUpperCase();
-              const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
-
-              document.getElementById('code').textContent = code;
-              document.getElementById("qrContainer").innerHTML = "";
-              new QRCode(document.getElementById("qrContainer"), {
-                text: code,
-                width: 200,
-                height: 200,
-                colorDark: "#000000",
-                colorLight: "#FFFFFF",
-                correctLevel: QRCode.CorrectLevel.H
-              });
-
-              document.getElementById('downloadBtn').onclick = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = 440;
-                canvas.height = 520;
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                const qrCanvas = document.querySelector('#qrContainer canvas');
-                ctx.drawImage(qrCanvas, 40, 40, 360, 360);
-                ctx.fillStyle = 'black';
-                ctx.font = 'bold 30px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText(code, canvas.width / 2, 460);
-                const url = canvas.toDataURL('image/png');
-                const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `Trac-QR-${machineId}-${plays}plays-${randomSuffix}.png`;
-                a.click();
-              };
-            });
+          document.getElementById('code').textContent = code;
+          document.getElementById("qrContainer").innerHTML = "";
+          new QRCode(document.getElementById("qrContainer"), {
+            text: code,
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#FFFFFF",
+            correctLevel: QRCode.CorrectLevel.H
           });
-        }
-      }
+
+          document.getElementById('downloadBtn').onclick = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 440;
+            canvas.height = 520;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const qrCanvas = document.querySelector('#qrContainer canvas');
+            ctx.drawImage(qrCanvas, 40, 40, 360, 360);
+            ctx.fillStyle = 'black';
+            ctx.font = 'bold 30px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(code, canvas.width / 2, 460);
+            const url = canvas.toDataURL('image/png');
+            const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Trac-QR-${machineId}-${plays}plays-${randomSuffix}.png`;
+            a.click();
+          };
+        });
+      });
     }
   </script>
 </body>
