@@ -32,15 +32,37 @@
 
     const machineId = '0243';
 
-    const expectedSuffix = '000000000000000000004939383849495050594938384949595493829405938274';
+    // $1.39 template
+    const prefix1 = '938294059382749498585749382940593827494985857400000000000000000000';
+    const suffix1 = '000000000000000000004939383849495050594938384949595493829405938274';
+    const length1 = prefix1.length + 10 + suffix1.length;
 
-    if (!t || !t.endsWith(expectedSuffix) || t.length !== 10 + expectedSuffix.length) {
+    // $3.39 template (change to your own gibberish)
+    const prefix3 = '1111111111111111111111111111111111111111111111111111111111111111';
+    const suffix3 = '1111111111111111111111111111111111111111111111111111111111111111';
+    const length3 = prefix3.length + 10 + suffix3.length;
+
+    // $5.39 template
+    const prefix5 = '2222222222222222222222222222222222222222222222222222222222222222';
+    const suffix5 = '2222222222222222222222222222222222222222222222222222222222222222';
+    const length5 = prefix5.length + 10 + suffix5.length;
+
+    // $10.39 template
+    const prefix10 = '3333333333333333333333333333333333333333333333333333333333333333';
+    const suffix10 = '3333333333333333333333333333333333333333333333333333333333333333';
+    const length10 = prefix10.length + 10 + suffix10.length;
+
+    let plays = 0;
+    if (t.length === length1 && t.startsWith(prefix1) && t.endsWith(suffix1)) plays = 1;
+    else if (t.length === length3 && t.startsWith(prefix3) && t.endsWith(suffix3)) plays = 3;
+    else if (t.length === length5 && t.startsWith(prefix5) && t.endsWith(suffix5)) plays = 5;
+    else if (t.length === length10 && t.startsWith(prefix10) && t.endsWith(suffix10)) plays = 10;
+
+    if (plays === 0) {
       document.getElementById("qrContainer").innerHTML = '';
       document.getElementById('code').textContent = '';
       document.getElementById('downloadBtn').style.display = 'none';
     } else {
-      const plays = 1; // $1.39
-
       generateHMAC(t).then(tHash => {
         const randomId = tHash.substring(0, 4).toUpperCase();
 
