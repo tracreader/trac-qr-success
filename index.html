@@ -32,17 +32,14 @@
 
     const machineId = '0243';
 
-    // Your exact template (prefix + 10 digits timestamp + suffix)
-    const expectedPrefix = '938294059382749498585749382940593827494985857400000000000000000000';
     const expectedSuffix = '000000000000000000004939383849495050594938384949595493829405938274';
-    const expectedLength = expectedPrefix.length + 10 + expectedSuffix.length;
 
-    if (t.length !== expectedLength || !t.startsWith(expectedPrefix) || !t.endsWith(expectedSuffix)) {
+    if (!t || !t.endsWith(expectedSuffix) || t.length !== 10 + expectedSuffix.length) {
       document.getElementById("qrContainer").innerHTML = '';
       document.getElementById('code').textContent = '';
       document.getElementById('downloadBtn').style.display = 'none';
     } else {
-      const plays = 1; // $1.39 test
+      const plays = 1; // $1.39
 
       generateHMAC(t).then(tHash => {
         const randomId = tHash.substring(0, 4).toUpperCase();
