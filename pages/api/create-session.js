@@ -11,7 +11,7 @@ export default async function handler(req, res) {
         line_items: [{ price: priceId, quantity: 1 }],
         mode: 'payment',
         ui_mode: 'embedded',
-        return_url: req.headers.origin + '/?session_id={CHECKOUT_SESSION_ID}',
+        return_url: req.headers.origin + '/?session_id={CHECKOUT_SESSION_ID}', // needed for return
       });
 
       res.status(200).json({ clientSecret: session.client_secret });
