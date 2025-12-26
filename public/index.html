@@ -19,6 +19,8 @@
     #downloadBtn.unlocked { opacity: 1; }
     #downloadBtn:hover { background: #FFFF99; }
     .locked-message { font-size: 2.5em; color: #FF4444; margin: 50px 0; }
+    #checkout-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 100; }
+    #checkout-modal.open { display: flex; }
   </style>
 </head>
 <body>
@@ -32,6 +34,10 @@
   <div class="qr-wrapper" id="qrContainer"></div>
   <div id="code"></div>
   <button id="downloadBtn">Download QR to Phone</button>
+
+  <div id="checkout-modal">
+    <div id="checkout-form"></div>
+  </div>
 
   <script>
     const stripe = Stripe('pk_test_51SfprM12BpOkNa2hhqFAfDqpJaCdtKCHapncnVCUNkTSNgua6gKOxX4nkgJoeebvBWFvZjuJc3ZBi1Qj5iGykt36004YAW5RUo');
@@ -70,33 +76,19 @@
           return;
         }
 
-        const { id } = await response.json();
+        const { clientSecret } = await response.json();
 
-        const { error } = await stripe.redirectToCheckout({ sessionId: id });
+        const checkout = await stripe.initEmbeddedCheckout({ clientSecret });
 
-        if (error) {
-          alert(error.message);
-        }
+        checkout.mount('#checkout-form');
+
+        document.getElementById('checkout-modal').classList.add('open');
       });
     });
 
-    // Success
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('session_id')) {
-      const sessionId = urlParams.get('session_id');
-
-      const amountStr = urlParams.get('amount') || '1.39';
-      const playsMap = { '1.39': 1, '3.39': 3, '5.39': 5, '10.39': 10 };
-      const plays = playsMap[amountStr] || 1;
-
-      const seed = sessionId;
-
-      localStorage.setItem('tracPaid', JSON.stringify({ plays, seed }));
-
-      unlockQR(plays, seed);
-
-      window.history.replaceState({}, '', window.location.pathname);
-    }
+    // On complete (payment success)
+    // Embedded Checkout doesn't have onComplete yet — use webhook for production
+    // For test, we can use localStorage after payment (or webhook)
 
     function unlockQR(plays, seed) {
       document.querySelector('.locked-message').style.display = 'none';
