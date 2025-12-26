@@ -8,7 +8,7 @@
   <script src="https://unpkg.com/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
     body { background: black; color: #FFFF00; font-family: Arial; text-align: center; padding: 40px; margin: 0; }
-    .qr-wrapper { background: white; padding: 40px; display: inline-block; border-radius: 20px; margin: 30px 0; }
+    .qr-wrapper { background: white; padding: 40px; display: inline-block; border-radius: 20px; margin: 30px 0; position: relative; }
     #qrContainer { filter: blur(12px) opacity(0.3); transition: filter 1s ease, opacity 1s ease; }
     #qrContainer.unlocked { filter: none; opacity: 1; }
     #code { font-size: 2em; font-weight: bold; margin: 30px 0; opacity: 0; transition: opacity 1s ease; }
@@ -19,7 +19,7 @@
     #downloadBtn.unlocked { opacity: 1; }
     #downloadBtn:hover { background: #FFFF99; }
     .locked-message { font-size: 2.5em; color: #FF4444; margin: 50px 0; }
-    #checkout { height: 700px; width: 600px; margin: 20px auto; border: 2px solid #FFFF00; border-radius: 20px; }
+    #checkout { height: 700px; width: 600px; margin: 20px auto; }
   </style>
 </head>
 <body>
@@ -81,7 +81,7 @@
 
         checkout.mount('#checkout');
 
-        // Listen for success
+        // On complete (payment success)
         checkout.on('complete', () => {
           const playsMap = {
             'price_1SgBWF12BpOkNa2hGatsvuL3': 1,
@@ -91,18 +91,19 @@
           };
           const plays = playsMap[priceId] || 1;
 
-          const seed = clientSecret; // deterministic
+          const seed = clientSecret.split('_secret_')[0]; // deterministic seed
 
           localStorage.setItem('tracPaid', JSON.stringify({ plays, seed }));
 
           unlockQR(plays, seed);
+
+          document.getElementById('checkout').innerHTML = '';
         });
       });
     });
 
     function unlockQR(plays, seed) {
       document.querySelector('.locked-message').style.display = 'none';
-      document.getElementById('checkout').style.display = 'none';
 
       generateHMAC(seed).then(hash => {
         const randomId = hash.substring(0, 4).toUpperCase();
