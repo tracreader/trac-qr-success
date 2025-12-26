@@ -1,14 +1,13 @@
 {
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
   "builds": [
     {
-      "src": "pages/api/create-session.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/create-session",
-      "dest": "pages/api/create-session.js"
+      "src": "index.html",
+      "use": "@vercel/static"
     }
   ]
 }
