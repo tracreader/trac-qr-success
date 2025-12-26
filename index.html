@@ -48,10 +48,9 @@
       unlockQR(seed);
     }
 
-    // Pay button — redirect to hosted Checkout (simple, works)
+    // Pay button — replace with your actual $1.39 Payment Link URL
     document.getElementById('payButton').addEventListener('click', () => {
-      const successUrl = encodeURIComponent(window.location.origin + window.location.pathname + '?paid=true');
-      window.location.href = 'https://buy.stripe.com/test_price_link_for_1.39?client_reference_id=' + machineId + '&success_url=' + successUrl;
+      window.location.href = 'YOUR_STRIPE_PAYMENT_LINK_FOR_1.39_HERE?prefilled_email=&client_reference_id=' + machineId + '&success_url=' + encodeURIComponent(window.location.href + '?paid=true');
     });
 
     // Detect success
