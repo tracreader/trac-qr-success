@@ -2,6 +2,7 @@
   "name": "trac-qr",
   "version": "1.0.0",
   "description": "Trac Reader QR",
+  "type": "module",
   "dependencies": {
     "stripe": "^16.2.0"
   }
