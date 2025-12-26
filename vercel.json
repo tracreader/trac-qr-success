@@ -1,0 +1,14 @@
+{
+  "builds": [
+    {
+      "src": "pages/api/create-session.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/create-session",
+      "dest": "pages/api/create-session.js"
+    }
+  ]
+}
