@@ -1,0 +1,10 @@
+{
+  "name": "trac-qr",
+  "version": "1.0.0",
+  "dependencies": {
+    "stripe": "^16.2.0"
+  },
+  "scripts": {
+    "build": "echo 'No build needed'"
+  }
+}
