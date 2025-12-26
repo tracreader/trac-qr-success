@@ -1,10 +1,8 @@
 {
   "name": "trac-qr",
   "version": "1.0.0",
+  "description": "Trac Reader QR",
   "dependencies": {
     "stripe": "^16.2.0"
-  },
-  "scripts": {
-    "build": "echo 'No build needed'"
   }
 }
