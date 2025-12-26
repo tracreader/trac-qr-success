@@ -37,7 +37,7 @@
     const stripe = Stripe('pk_test_51SfprM12BpOkNa2hhqFAfDqpJaCdtKCHapncnVCUNkTSNgua6gKOxX4nkgJoeebvBWFvZjuJc3ZBi1Qj5iGykt36004YAW5RUo');
 
     const SECRET = "TracReader2025!SuperSecretKey#987";
-    const machineId = '0243'; // temporary
+    const machineId = '0243'; // temporary — we'll make dynamic later
 
     async function generateHMAC(message) {
       const enc = new TextEncoder();
@@ -46,7 +46,7 @@
       return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
     }
 
-    // Remember paid state
+    // Check if already paid (localStorage remember)
     const paidData = localStorage.getItem('tracPaid');
     if (paidData) {
       const { plays, seed } = JSON.parse(paidData);
@@ -65,8 +65,8 @@
         });
 
         if (!response.ok) {
-          const error = await response.text();
-          alert('Error: ' + error);
+          const errorText = await response.text();
+          alert('Error: ' + errorText);
           return;
         }
 
