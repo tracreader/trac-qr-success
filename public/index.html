@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -46,14 +46,14 @@
       return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
     }
 
-    // Remember paid state from localStorage
+    // Remember paid
     const paidData = localStorage.getItem('tracPaid');
     if (paidData) {
       const { plays, seed } = JSON.parse(paidData);
       unlockQR(plays, seed);
     }
 
-    // Buttons - create Checkout session via serverless function
+    // Buttons
     document.querySelectorAll('.amount-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         const priceId = btn.dataset.price;
@@ -80,7 +80,7 @@
       });
     });
 
-    // Success detection (after redirect back from Stripe)
+    // Success
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('session_id')) {
       const sessionId = urlParams.get('session_id');
@@ -95,7 +95,6 @@
 
       unlockQR(plays, seed);
 
-      // Clean the URL (remove session_id)
       window.history.replaceState({}, '', window.location.pathname);
     }
 
