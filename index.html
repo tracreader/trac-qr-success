@@ -37,7 +37,7 @@
     const stripe = Stripe('pk_test_51SfprM12BpOkNa2hhqFAfDqpJaCdtKCHapncnVCUNkTSNgua6gKOxX4nkgJoeebvBWFvZjuJc3ZBi1Qj5iGykt36004YAW5RUo');
 
     const SECRET = "TracReader2025!SuperSecretKey#987";
-    const machineId = '0243'; // temporary — we'll add dynamic machine_id next
+    const machineId = '0243'; // we'll make this dynamic later
 
     async function generateHMAC(message) {
       const enc = new TextEncoder();
@@ -46,52 +46,42 @@
       return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
     }
 
-    // Foggy/locked by default
-    document.querySelector('.locked-message').style.display = 'block';
+    // Check if already paid (localStorage remember)
+    const paidData = localStorage.getItem('tracPaid');
+    if (paidData) {
+      const { plays, seed } = JSON.parse(paidData);
+      unlockQR(plays, seed);
+    }
 
-    // Buttons — create Checkout Session client-side and embed
+    // Buttons — redirect to hosted Checkout (temporary for testing — no serverless needed)
     document.querySelectorAll('.amount-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
         const priceId = btn.dataset.price;
+        const playsMap = { 'price_1SgBWF12BpOkNa2hGatsvuL3': 1, 'price_1SgBWF12BpOkNa2hbJw7l1hn': 3, 'price_1SgBWF12BpOkNa2haBK3pIuS': 5, 'price_1SgBWF12BpOkNa2hf3YIdKxh': 10 };
+        const plays = playsMap[priceId];
 
-        // Create Checkout Session (client-side — safe for test mode)
-        const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Bearer sk_test_51SfprM12BpOkNa2hYOUR_SECRET_KEY_HERE', // replace with your secret key for test
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            'payment_method_types[0]': 'card',
-            'line_items[0][price]': priceId,
-            'line_items[0][quantity]': '1',
-            'mode': 'payment',
-            'success_url': window.location.href + '?success=true',
-            'cancel_url': window.location.href + '?cancel=true',
-          })
-        });
-
-        const session = await response.json();
-
-        // Embed Checkout
-        const result = await stripe.redirectToCheckout({ sessionId: session.id });
-
-        if (result.error) {
-          alert(result.error.message);
-        }
+        // Temporary redirect to hosted Checkout for testing (no serverless)
+        window.location.href = `https://buy.stripe.com/test_link_for_${plays}_plays?prefilled_email=&client_reference_id=${machineId}`;
       });
     });
 
-    // Unlock on success (detect ?success=true)
+    // Success detection (after redirect back)
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('success') === 'true') {
+    if (urlParams.get('payment_intent')) {
+      const amountStr = urlParams.get('amount') || '1.39'; // fallback
+      const playsMap = { '1.39': 1, '3.39': 3, '5.39': 5, '10.39': 10 };
+      const plays = playsMap[amountStr] || 1;
+
+      const seed = Date.now().toString(); // or use payment_intent for determinism
+
+      localStorage.setItem('tracPaid', JSON.stringify({ plays, seed }));
+
+      unlockQR(plays, seed);
+    }
+
+    function unlockQR(plays, seed) {
       document.querySelector('.locked-message').style.display = 'none';
 
-      const plays = urlParams.get('amount') ? 
-        ({ '1.39': 1, '3.39': 3, '5.39': 5, '10.39': 10 }[urlParams.get('amount')] || 1) : 1; // fallback
-
-      // Use a simple deterministic seed (e.g., current time or random — or we can add machine_id later)
-      const seed = Date.now().toString();
       generateHMAC(seed).then(hash => {
         const randomId = hash.substring(0, 4).toUpperCase();
 
