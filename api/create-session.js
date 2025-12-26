@@ -1,8 +1,7 @@
-import Stripe from 'stripe';
+const Stripe = require('stripe');
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   if (req.method === 'POST') {
     try {
       const { priceId } = req.body;
@@ -16,8 +15,8 @@ export default async function handler(req, res) {
           },
         ],
         mode: 'payment',
-        success_url: `${req.headers.origin}/?success=true`,
-        cancel_url: `${req.headers.origin}/?cancel=true`,
+        success_url: `${req.headers.origin || 'https://' + req.headers.host}/?success=true`,
+        cancel_url: `${req.headers.origin || 'https://' + req.headers.host}/?cancel=true`,
       });
 
       res.status(200).json({ id: session.id });
@@ -28,10 +27,4 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'POST');
     res.status(405).end('Method Not Allowed');
   }
-}
-
-export const config = {
-  api: {
-    bodyParser: true,
-  },
 };
