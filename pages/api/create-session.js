@@ -1,5 +1,4 @@
-import Stripe from 'stripe';
-
+const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req, res) {
@@ -11,11 +10,11 @@ export default async function handler(req, res) {
         payment_method_types: ['card'],
         line_items: [{ price: priceId, quantity: 1 }],
         mode: 'payment',
-        success_url: `${req.headers.origin}/?success=true`,
-        cancel_url: `${req.headers.origin}/?cancel=true`,
+        ui_mode: 'embedded',
+        return_url: req.headers.origin + '?success=true',
       });
 
-      res.status(200).json({ id: session.id });
+      res.status(200).json({ clientSecret: session.client_secret });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
