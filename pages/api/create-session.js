@@ -1,4 +1,5 @@
-const Stripe = require('stripe');
+import Stripe from 'stripe';
+
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req, res) {
@@ -11,7 +12,7 @@ export default async function handler(req, res) {
         line_items: [{ price: priceId, quantity: 1 }],
         mode: 'payment',
         ui_mode: 'embedded',
-        return_url: req.headers.origin + '/?session_id={CHECKOUT_SESSION_ID}', // needed for return
+        return_url: req.headers.origin + '/?session_id={CHECKOUT_SESSION_ID}',
       });
 
       res.status(200).json({ clientSecret: session.client_secret });
