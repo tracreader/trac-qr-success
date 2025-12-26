@@ -1,156 +1,39 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trac Reader QR</title>
-  <script src="https://js.stripe.com/v3/"></script>
-  <script src="https://unpkg.com/qrcodejs@1.0.0/qrcode.min.js"></script>
-  <style>
-    body { background: black; color: #FFFF00; font-family: Arial; text-align: center; padding: 40px; margin: 0; }
-    .qr-wrapper { background: white; padding: 40px; display: inline-block; border-radius: 20px; margin: 30px 0; }
-    #qrContainer { filter: blur(12px) opacity(0.3); transition: filter 1s ease, opacity 1s ease; }
-    #qrContainer.unlocked { filter: none; opacity: 1; }
-    #code { font-size: 2em; font-weight: bold; margin: 30px 0; opacity: 0; transition: opacity 1s ease; }
-    #code.unlocked { opacity: 1; }
-    .amount-btn { padding: 20px 40px; font-size: 2em; background: #FFFF00; color: black; border: none; border-radius: 15px; cursor: pointer; margin: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-    .amount-btn:hover { background: #FFFF99; }
-    #downloadBtn { padding: 25px 50px; font-size: 2em; background: #FFFF00; color: black; border: none; border-radius: 15px; cursor: pointer; margin: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); opacity: 0; transition: opacity 1s ease; }
-    #downloadBtn.unlocked { opacity: 1; }
-    #downloadBtn:hover { background: #FFFF99; }
-    .locked-message { font-size: 2.5em; color: #FF4444; margin: 50px 0; }
-    #checkout { height: 700px; width: 600px; margin: 20px auto; border: 2px solid #FFFF00; border-radius: 20px; }
-  </style>
-</head>
-<body>
-  <div class="locked-message">Select plays and pay to unlock your QR code</div>
+import { loadStripe } from '@stripe/stripe-js';
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 
-  <button class="amount-btn" data-price="price_1SgBWF12BpOkNa2hGatsvuL3">1 Play - $1.39</button>
-  <button class="amount-btn" data-price="price_1SgBWF12BpOkNa2hbJw7l1hn">3 Plays - $3.39</button>
-  <button class="amount-btn" data-price="price_1SgBWF12BpOkNa2haBK3pIuS">5 Plays - $5.39</button>
-  <button class="amount-btn" data-price="price_1SgBWF12BpOkNa2hf3YIdKxh">10 Plays - $10.39</button>
+const stripePromise = loadStripe('pk_test_51SfprM12BpOkNa2hhqFAfDqpJaCdtKCHapncnVCUNkTSNgua6gKOxX4nkgJoeebvBWFvZjuJc3ZBi1Qj5iGykt36004YAW5RUo');
 
-  <div class="qr-wrapper" id="qrContainer"></div>
-  <div id="code"></div>
-  <button id="downloadBtn">Download QR to Phone</button>
-
-  <div id="checkout"></div>
-
-  <script>
-    const stripe = Stripe('pk_test_51SfprM12BpOkNa2hhqFAfDqpJaCdtKCHapncnVCUNkTSNgua6gKOxX4nkgJoeebvBWFvZjuJc3ZBi1Qj5iGykt36004YAW5RUo');
-
-    const SECRET = "TracReader2025!SuperSecretKey#987";
-    const machineId = '0243';
-
-    async function generateHMAC(message) {
-      const enc = new TextEncoder();
-      const key = await crypto.subtle.importKey("raw", enc.encode(SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-      const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
-      return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
-    }
-
-    // Remember paid
-    const paidData = localStorage.getItem('tracPaid');
-    if (paidData) {
-      const { plays, seed } = JSON.parse(paidData);
-      unlockQR(plays, seed);
-    }
-
-    // Buttons
-    document.querySelectorAll('.amount-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const priceId = btn.dataset.price;
-
-        const response = await fetch('/api/create-session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ priceId }),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          alert('Error: ' + errorText);
-          return;
-        }
-
-        const { clientSecret } = await response.json();
-
-        const checkout = await stripe.initEmbeddedCheckout({
-          clientSecret,
-        });
-
-        checkout.mount('#checkout');
-
-        checkout.on('complete', () => {
-          const playsMap = {
-            'price_1SgBWF12BpOkNa2hGatsvuL3': 1,
-            'price_1SgBWF12BpOkNa2hbJw7l1hn': 3,
-            'price_1SgBWF12BpOkNa2haBK3pIuS': 5,
-            'price_1SgBWF12BpOkNa2hf3YIdKxh': 10,
-          };
-          const plays = playsMap[priceId] || 1;
-
-          const seed = clientSecret.split('_secret_')[0];
-
-          localStorage.setItem('tracPaid', JSON.stringify({ plays, seed }));
-
-          unlockQR(plays, seed);
-
-          document.getElementById('checkout').innerHTML = '<div style="font-size:2em;color:#00FF00;">Payment successful! QR unlocked.</div>';
-        });
-      });
+export default function Home() {
+  const fetchClientSecret = async (priceId) => {
+    const res = await fetch('/api/create-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ priceId }),
     });
+    const data = await res.json();
+    return data.clientSecret;
+  };
 
-    function unlockQR(plays, seed) {
-      document.querySelector('.locked-message').style.display = 'none';
+  const options = { fetchClientSecret };
 
-      generateHMAC(seed).then(hash => {
-        const randomId = hash.substring(0, 4).toUpperCase();
+  return (
+    <div style={{ background: 'black', color: '#FFFF00', fontFamily: 'Arial', textAlign: 'center', padding: '40px' }}>
+      <div style={{ fontSize: '2.5em', color: '#FF4444', margin: '50px 0' }}>Select plays and pay to unlock your QR code</div>
 
-        const dataToSign = `${plays}|${machineId}${randomId}`;
+      <button style={{ padding: '20px 40px', fontSize: '2em', background: '#FFFF00', color: 'black', border: 'none', borderRadius: '15px', cursor: 'pointer', margin: '15px' }} onClick={() => fetchClientSecret('price_1SgBWF12BpOkNa2hGatsvuL3').then(cs => window.location.href = `?cs=${cs}`)}>1 Play - $1.39</button>
+      <button style={{ padding: '20px 40px', fontSize: '2em', background: '#FFFF00', color: 'black', border: 'none', borderRadius: '15px', cursor: 'pointer', margin: '15px' }} onClick={() => fetchClientSecret('price_1SgBWF12BpOkNa2hbJw7l1hn').then(cs => window.location.href = `?cs=${cs}`)}>3 Plays - $3.39</button>
+      <button style={{ padding: '20px 40px', fontSize: '2em', background: '#FFFF00', color: 'black', border: 'none', borderRadius: '15px', cursor: 'pointer', margin: '15px' }} onClick={() => fetchClientSecret('price_1SgBWF12BpOkNa2haBK3pIuS').then(cs => window.location.href = `?cs=${cs}`)}>5 Plays - $5.39</button>
+      <button style={{ padding: '20px 40px', fontSize: '2em', background: '#FFFF00', color: 'black', border: 'none', borderRadius: '15px', cursor: 'pointer', margin: '15px' }} onClick={() => fetchClientSecret('price_1SgBWF12BpOkNa2hf3YIdKxh').then(cs => window.location.href = `?cs=${cs}`)}>10 Plays - $10.39</button>
 
-        generateHMAC(dataToSign).then(hash2 => {
-          const shortSig = hash2.substring(0, 4).toUpperCase();
-          const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
+      <div className="qr-wrapper" id="qrContainer"></div>
+      <div id="code"></div>
+      <button id="downloadBtn">Download QR to Phone</button>
 
-          document.getElementById('code').textContent = code;
-          document.getElementById("qrContainer").innerHTML = "";
-          new QRCode(document.getElementById("qrContainer"), {
-            text: code,
-            width: 360,
-            height: 360,
-            colorDark: "#000000",
-            colorLight: "#FFFFFF",
-            correctLevel: QRCode.CorrectLevel.H
-          });
-
-          document.getElementById('qrContainer').classList.add('unlocked');
-          document.getElementById('code').classList.add('unlocked');
-          document.getElementById('downloadBtn').classList.add('unlocked');
-
-          document.getElementById('downloadBtn').onclick = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = 440;
-            canvas.height = 520;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            const qrCanvas = document.querySelector('#qrContainer canvas');
-            ctx.drawImage(qrCanvas, 40, 40, 360, 360);
-            ctx.fillStyle = 'black';
-            ctx.font = 'bold 30px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(code, canvas.width / 2, 460);
-            const url = canvas.toDataURL('image/png');
-            const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Trac-QR-${machineId}-${plays}plays-${randomSuffix}.png`;
-            a.click();
-          };
-        });
-      });
-    }
-  </script>
-</body>
-</html>
+      {new URLSearchParams(window.location.search).get('cs') && (
+        <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret: new URLSearchParams(window.location.search).get('cs') }}>
+          <EmbeddedCheckout />
+        </EmbeddedCheckoutProvider>
+      )}
+    </div>
+  );
+}
