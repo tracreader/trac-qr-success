@@ -32,7 +32,7 @@
     const sessionId = urlParams.get('session_id');
     const amountStr = urlParams.get('amount');
 
-    // === URL CLEANING with better dummy names ===
+    // === URL CLEANING ===
     if (sessionId || amountStr) {
       const cleanUrl = window.location.pathname + 
         "?status=success" +
@@ -50,11 +50,18 @@
     const isValidAmount = validAmounts.includes(amountStr);
     const plays = playsMap[amountStr] || 0;
 
-    // Try to load from sessionStorage first (for refreshes)
     const savedCode = sessionStorage.getItem('trac_qr_code');
 
+    // === RELIABLE EXIT WARNING (works in all modern browsers) ===
+    function enableExitWarning() {
+      window.addEventListener('beforeunload', function(e) {
+        // This triggers the browser's built-in confirmation dialog
+        e.preventDefault();
+        e.returnValue = '';  // Required for Chrome/Firefox to show dialog
+      });
+    }
+
     if (savedCode) {
-      // Refresh case: show the saved valid code
       document.getElementById('code').textContent = savedCode;
       document.getElementById("qrContainer").innerHTML = "";
       new QRCode(document.getElementById("qrContainer"), {
@@ -87,14 +94,9 @@
         a.click();
       };
 
-      // === EXIT WARNING ===
-      window.addEventListener('beforeunload', function(e) {
-        e.preventDefault();
-        e.returnValue = 'Are you sure you want to exit? Please download your QR code or it will be lost forever!';
-      });
+      enableExitWarning();
 
     } else if (isValidSession && isValidAmount && plays > 0) {
-      // First load from Stripe: generate and save
       generateHMAC(sessionId).then(sessionHash => {
         const randomId = sessionHash.substring(0, 4).toUpperCase();
         const dataToSign = `${plays}|${machineId}${randomId}`;
@@ -137,11 +139,7 @@
             a.click();
           };
 
-          // === EXIT WARNING ===
-          window.addEventListener('beforeunload', function(e) {
-            e.preventDefault();
-            e.returnValue = 'Are you sure you want to exit? Please download your QR code or it will be lost forever!';
-          });
+          enableExitWarning();
         });
       });
 
