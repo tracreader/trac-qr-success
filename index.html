@@ -1,23 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script>
-    // 1. Look at the URL for your encoded data
-    const urlParams = new URLSearchParams(window.location.search);
-    const encodedData = urlParams.get('data'); // This matches your Stripe redirect: ?data=...
-
-    if (encodedData) {
-        // 2. Save the "Jibberish" into the browser's hidden session memory
-        sessionStorage.setItem('temp_vault', encodedData);
-
-        // 3. IMMEDIATELY rewrite the URL bar
-        // This removes the real data and adds your "Dummy" decoy
-        const dummyUrl = window.location.pathname + "?session_id=cs_test_DUMMY" + Math.floor(Math.random() * 1000) + "&status=success";
-        
-        window.history.replaceState({}, document.title, dummyUrl);
-    }
-</script>
-
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QR Code</title>
