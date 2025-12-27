@@ -19,72 +19,38 @@
   <button id="downloadBtn">Download QR to Phone</button>
 
   <script>
-    // Fake split secret + salts (all obfuscation intact)
-    const part1 = "fakePartABC123!";
-    const part2 = "dummyXYZ987#";
-    const part3 = "notReal2025";
-    const FAKE_SECRET = part1 + part2 + part3;
-
-    const SALT_FRONT = "x9_v2";
-    const SALT_BACK = "_z04";
-
+    // URL CLEANING
     const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session_id');
+    const amountStr = urlParams.get('amount');
 
-    // Support BOTH ?data= (future) AND direct ?session_id= (current Stripe Payment Links)
-    let rawSessionId = urlParams.get('data') ? atob(urlParams.get('data')) : urlParams.get('session_id');
-
-    // If we got it from URL, clean the URL immediately with dummies
-    if (rawSessionId && (urlParams.has('data') || urlParams.has('session_id'))) {
-      const dummyUrl = window.location.pathname + 
-        "?session_id=cs_test_DUMMY" + Math.floor(Math.random() * 9999) +
-        "&status=success&fake_token=abc123&amount=0.00&ref=" + Math.random().toString(36).substring(7);
-      window.history.replaceState({}, document.title, dummyUrl);
+    if (sessionId || amountStr) {
+      const cleanUrl = window.location.pathname + "?status=success&ref=" + Math.random().toString(36).substring(2, 10) + "&fake_id=" + Date.now();
+      window.history.replaceState({}, document.title, cleanUrl);
     }
 
-    // Fallback: if refresh happened, we lose it (client-side limit) — but for now it works on first load
-    if (!rawSessionId) {
-      document.getElementById('code').textContent = 'Invalid or expired access';
-      document.body.innerHTML += '<p>Try paying again.</p>';
-      throw new Error('No session data');
-    }
-
-    const amountStr = urlParams.get('amount') || '10.39';
     const validAmounts = ['1.39', '3.39', '5.39', '10.39'];
     const playsMap = { '1.39': 1, '3.39': 3, '5.39': 5, '10.39': 10 };
     const plays = playsMap[amountStr] || 0;
     const machineId = '0243';
 
-    const isValidSession = rawSessionId && (rawSessionId.startsWith('cs_test_') || rawSessionId.startsWith('cs_live_'));
+    const isValidSession = sessionId && (sessionId.startsWith('cs_test_') || sessionId.startsWith('cs_live_'));
     const isValidAmount = validAmounts.includes(amountStr);
 
     if (!isValidSession || !isValidAmount || plays === 0) {
+      document.getElementById("qrContainer").innerHTML = '';
       document.getElementById('code').textContent = 'Invalid payment';
-      return;
-    }
+      document.getElementById('downloadBtn').style.display = 'none';
+    } else {
+      // FAKE QR (no secret key — your app will reject this)
+      const fakeRandom = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const fakeSig = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const fakeCode = plays === 10 ? `10-${machineId}${fakeRandom}${fakeSig}` : `${plays}-${machineId}${fakeRandom}${fakeSig}`;
 
-    (async () => {
-      const enc = new TextEncoder();
-      const fakeKey = await crypto.subtle.importKey("raw", enc.encode(FAKE_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-      const sig = await crypto.subtle.sign("HMAC", fakeKey, enc.encode(rawSessionId));
-      const sessionHash = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
-      
-      let randomIdRaw = sessionHash.substring(0, 8);
-      const sandwiched = SALT_FRONT + randomIdRaw + SALT_BACK;
-      const randomId = sandwiched.toUpperCase();
-
-      const dataToSign = `${plays}|${machineId}${randomIdRaw}`;
-      const dataSig = await crypto.subtle.sign("HMAC", fakeKey, enc.encode(dataToSign));
-      const dataHash = Array.from(new Uint8Array(dataSig)).map(b => b.toString(16).padStart(2, "0")).join("");
-      const shortSig = dataHash.substring(0, 4).toUpperCase();
-
-      const finalCode = plays === 10 
-        ? `10-${machineId}${randomId}${shortSig}`
-        : `${plays}-${machineId}${randomId}${shortSig}`;
-
-      document.getElementById('code').textContent = finalCode;
+      document.getElementById('code').textContent = fakeCode;
       document.getElementById("qrContainer").innerHTML = "";
       new QRCode(document.getElementById("qrContainer"), {
-        text: finalCode,
+        text: fakeCode,
         width: 200,
         height: 200,
         colorDark: "#000000",
@@ -104,7 +70,7 @@
         ctx.fillStyle = 'black';
         ctx.font = 'bold 30px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(finalCode, canvas.width / 2, 460);
+        ctx.fillText(fakeCode, canvas.width / 2, 460);
         const url = canvas.toDataURL('image/png');
         const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
         const a = document.createElement('a');
@@ -112,7 +78,7 @@
         a.download = `Trac-QR-${machineId}-${plays}plays-${randomSuffix}.png`;
         a.click();
       };
-    })();
+    }
   </script>
 </body>
 </html>
