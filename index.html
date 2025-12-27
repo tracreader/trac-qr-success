@@ -32,12 +32,12 @@
     const sessionId = urlParams.get('session_id');
     const amountStr = urlParams.get('amount');
 
-    // === URL CLEANING ===
+    // === URL CLEANING with better dummy names ===
     if (sessionId || amountStr) {
       const cleanUrl = window.location.pathname + 
         "?status=success" +
         "&ref=" + Math.random().toString(36).substring(2, 10) +
-        "&fake_id=" + Date.now() +
+        "&payment_id=" + Date.now() + Math.floor(Math.random() * 10000) +
         "&token=" + Math.random().toString(36).substring(2, 8);
       window.history.replaceState({}, document.title, cleanUrl);
     }
@@ -66,7 +66,6 @@
         correctLevel: QRCode.CorrectLevel.H
       });
 
-      // Download button for saved code
       document.getElementById('downloadBtn').onclick = () => {
         const canvas = document.createElement('canvas');
         canvas.width = 440;
@@ -84,12 +83,18 @@
         const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Trac-QR-${machineId}-${playsMap[amountStr] || 'X'}plays-${randomSuffix}.png`;
+        a.download = `Trac-QR-${machineId}-${plays}plays-${randomSuffix}.png`;
         a.click();
       };
 
+      // === EXIT WARNING ===
+      window.addEventListener('beforeunload', function(e) {
+        e.preventDefault();
+        e.returnValue = 'Are you sure you want to exit? Please download your QR code or it will be lost forever!';
+      });
+
     } else if (isValidSession && isValidAmount && plays > 0) {
-      // First load from Stripe: generate new code and save it
+      // First load from Stripe: generate and save
       generateHMAC(sessionId).then(sessionHash => {
         const randomId = sessionHash.substring(0, 4).toUpperCase();
         const dataToSign = `${plays}|${machineId}${randomId}`;
@@ -98,10 +103,8 @@
           const shortSig = hash.substring(0, 4).toUpperCase();
           const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
 
-          // Save to sessionStorage for refreshes
           sessionStorage.setItem('trac_qr_code', code);
 
-          // Display it
           document.getElementById('code').textContent = code;
           document.getElementById("qrContainer").innerHTML = "";
           new QRCode(document.getElementById("qrContainer"), {
@@ -133,11 +136,16 @@
             a.download = `Trac-QR-${machineId}-${plays}plays-${randomSuffix}.png`;
             a.click();
           };
+
+          // === EXIT WARNING ===
+          window.addEventListener('beforeunload', function(e) {
+            e.preventDefault();
+            e.returnValue = 'Are you sure you want to exit? Please download your QR code or it will be lost forever!';
+          });
         });
       });
 
     } else {
-      // Invalid access or tampering
       document.getElementById("qrContainer").innerHTML = '';
       document.getElementById('code').textContent = 'Invalid payment';
       document.getElementById('downloadBtn').style.display = 'none';
