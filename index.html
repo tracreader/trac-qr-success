@@ -19,13 +19,26 @@
   <button id="downloadBtn">Download QR to Phone</button>
 
   <script>
-    // URL CLEANING
+    const SECRET = "TracReader2025!SuperSecretKey#987";
+
+    async function generateHMAC(message) {
+      const enc = new TextEncoder();
+      const key = await crypto.subtle.importKey("raw", enc.encode(SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+      const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
+      return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get('session_id');
     const amountStr = urlParams.get('amount');
 
+    // === URL CLEANING: Remove real session_id and amount immediately ===
     if (sessionId || amountStr) {
-      const cleanUrl = window.location.pathname + "?status=success&ref=" + Math.random().toString(36).substring(2, 10) + "&fake_id=" + Date.now();
+      const cleanUrl = window.location.pathname + 
+        "?status=success" +
+        "&ref=" + Math.random().toString(36).substring(2, 10) +
+        "&fake_id=" + Date.now() +
+        "&token=" + Math.random().toString(36).substring(2, 8);
       window.history.replaceState({}, document.title, cleanUrl);
     }
 
@@ -42,42 +55,48 @@
       document.getElementById('code').textContent = 'Invalid payment';
       document.getElementById('downloadBtn').style.display = 'none';
     } else {
-      // FAKE QR (no secret key — your app will reject this)
-      const fakeRandom = Math.random().toString(36).substring(2, 6).toUpperCase();
-      const fakeSig = Math.random().toString(36).substring(2, 6).toUpperCase();
-      const fakeCode = plays === 10 ? `10-${machineId}${fakeRandom}${fakeSig}` : `${plays}-${machineId}${fakeRandom}${fakeSig}`;
+      generateHMAC(sessionId).then(sessionHash => {
+        const randomId = sessionHash.substring(0, 4).toUpperCase();
 
-      document.getElementById('code').textContent = fakeCode;
-      document.getElementById("qrContainer").innerHTML = "";
-      new QRCode(document.getElementById("qrContainer"), {
-        text: fakeCode,
-        width: 200,
-        height: 200,
-        colorDark: "#000000",
-        colorLight: "#FFFFFF",
-        correctLevel: QRCode.CorrectLevel.H
+        const dataToSign = `${plays}|${machineId}${randomId}`;
+
+        generateHMAC(dataToSign).then(hash => {
+          const shortSig = hash.substring(0, 4).toUpperCase();
+          const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
+
+          document.getElementById('code').textContent = code;
+          document.getElementById("qrContainer").innerHTML = "";
+          new QRCode(document.getElementById("qrContainer"), {
+            text: code,
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#FFFFFF",
+            correctLevel: QRCode.CorrectLevel.H
+          });
+
+          document.getElementById('downloadBtn').onclick = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 440;
+            canvas.height = 520;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const qrCanvas = document.querySelector('#qrContainer canvas');
+            ctx.drawImage(qrCanvas, 40, 40, 360, 360);
+            ctx.fillStyle = 'black';
+            ctx.font = 'bold 30px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(code, canvas.width / 2, 460);
+            const url = canvas.toDataURL('image/png');
+            const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Trac-QR-${machineId}-${plays}plays-${randomSuffix}.png`;
+            a.click();
+          };
+        });
       });
-
-      document.getElementById('downloadBtn').onclick = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 440;
-        canvas.height = 520;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        const qrCanvas = document.querySelector('#qrContainer canvas');
-        ctx.drawImage(qrCanvas, 40, 40, 360, 360);
-        ctx.fillStyle = 'black';
-        ctx.font = 'bold 30px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(fakeCode, canvas.width / 2, 460);
-        const url = canvas.toDataURL('image/png');
-        const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Trac-QR-${machineId}-${plays}plays-${randomSuffix}.png`;
-        a.click();
-      };
     }
   </script>
 </body>
