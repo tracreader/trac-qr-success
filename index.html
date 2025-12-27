@@ -17,78 +17,142 @@
   <div class="qr-wrapper" id="qrContainer"></div>
   <div id="code"></div>
   <button id="downloadBtn">Download QR to Phone</button>
+
   <script>
-    const SECRET = "TracReader2025!SuperSecretKey#987";
+   
+    const DB_NAME = "TracVault";
+    const STORE_NAME = "keys";
+    let fakeDerivedKey = null;
 
-    async function generateHMAC(message) {
+    async function initBlackBox() {
+      const db = await indexedDB.open(DB_NAME, 1);
+      db.onupgradeneeded = (e) => e.target.result.createObjectStore(STORE_NAME);
+      return new Promise(resolve => { db.onsuccess = () => resolve(db.result); });
+    }
+
+    async function storeFakeKey() {
+      const db = await initBlackBox();
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const fakeRaw = crypto.getRandomValues(new Uint8Array(32));
+      const key = await crypto.subtle.importKey("raw", fakeRaw, "HMAC", false, ["sign"]);
+      tx.store.put(key, "main");
+      fakeDerivedKey = key;
+    }
+
+    async function getFakeKey() {
+      if (fakeDerivedKey) return fakeDerivedKey;
+      await storeFakeKey();
+      return fakeDerivedKey;
+    }
+
+    
+    (async () => {
+      // Fake split secret (obfuscation)
+      const part1 = "fakePartABC123!";
+      const part2 = "dummyXYZ987#";
+      const part3 = "notReal2025";
+      const FAKE_SECRET = part1 + part2 + part3;
+
+      // Salts for sandwich
+      const SALT_FRONT = "x9_v2";
+      const SALT_BACK = "_z04";
+
+      const urlParams = new URLSearchParams(window.location.search);
+      let encodedData = urlParams.get('data');
+
+      
+      if (encodedData) {
+        sessionStorage.setItem('temp_vault', encodedData);
+        const dummyUrl = window.location.pathname + 
+          "?session_id=cs_test_DUMMY" + Math.floor(Math.random() * 9999) +
+          "&status=success&fake_token=abc123&amount=0.00&ref=" + Math.random().toString(36).substring(7);
+        window.history.replaceState({}, document.title, dummyUrl);
+      } else {
+        encodedData = sessionStorage.getItem('temp_vault');
+      }
+
+      if (!encodedData) {
+        document.getElementById('code').textContent = 'Invalid access';
+        return;
+      }
+
+     
+      let sessionId;
+      try {
+        sessionId = atob(encodedData);
+      } catch (e) {
+        document.getElementById('code').textContent = 'Error';
+        return;
+      }
+
+      const amountStr = urlParams.get('amount') || '10.39';
+      const validAmounts = ['1.39', '3.39', '5.39', '10.39'];
+      const playsMap = { '1.39': 1, '3.39': 3, '5.39': 5, '10.39': 10 };
+      const plays = playsMap[amountStr] || 0;
+      const machineId = '0243';
+
+      const isValidSession = sessionId && (sessionId.startsWith('cs_test_') || sessionId.startsWith('cs_live_'));
+      const isValidAmount = validAmounts.includes(amountStr);
+
+      if (!isValidSession || !isValidAmount || plays === 0) {
+        document.getElementById('code').textContent = 'Invalid payment';
+        return;
+      }
+
       const enc = new TextEncoder();
-      const key = await crypto.subtle.importKey("raw", enc.encode(SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-      const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
-      return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
-    }
+      const fakeKey = await crypto.subtle.importKey("raw", enc.encode(FAKE_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+      const sig = await crypto.subtle.sign("HMAC", fakeKey, enc.encode(sessionId));
+      const sessionHash = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
+      
+      
+      let randomIdRaw = sessionHash.substring(0, 8);
+      const sandwiched = SALT_FRONT + randomIdRaw + SALT_BACK;
+      const randomId = sandwiched.toUpperCase();
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const sessionId = urlParams.get('session_id');
-    const amountStr = urlParams.get('amount');
-    const amount = parseFloat(amountStr);
+      const dataToSign = `${plays}|${machineId}${randomIdRaw}`;
+      const dataSig = await crypto.subtle.sign("HMAC", fakeKey, enc.encode(dataToSign));
+      const dataHash = Array.from(new Uint8Array(dataSig)).map(b => b.toString(16).padStart(2, "0")).join("");
+      const shortSig = dataHash.substring(0, 4).toUpperCase();
 
-    const validAmounts = ['1.39', '3.39', '5.39', '10.39'];
-    const playsMap = { '1.39': 1, '3.39': 3, '5.39': 5, '10.39': 10 };
-    const plays = playsMap[amountStr] || 0;
-    const machineId = '0243';
+      const finalCode = plays === 10 
+        ? `10-${machineId}${randomId}${shortSig}`
+        : `${plays}-${machineId}${randomId}${shortSig}`;
 
-    // Strict validation: must have valid session_id AND exact valid amount string
-    const isValidSession = sessionId && (sessionId.startsWith('cs_test_') || sessionId.startsWith('cs_live_'));
-    const isValidAmount = validAmounts.includes(amountStr);
-
-    if (!isValidSession || !isValidAmount) {
-      document.getElementById("qrContainer").innerHTML = '';
-      document.getElementById('code').textContent = '';
-      document.getElementById('downloadBtn').style.display = 'none';
-    } else {
-      generateHMAC(sessionId).then(sessionHash => {
-        const randomId = sessionHash.substring(0, 4).toUpperCase();
-
-        const dataToSign = `${plays}|${machineId}${randomId}`;
-
-        generateHMAC(dataToSign).then(hash => {
-          const shortSig = hash.substring(0, 4).toUpperCase();
-          const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
-
-          document.getElementById('code').textContent = code;
-          document.getElementById("qrContainer").innerHTML = "";
-          new QRCode(document.getElementById("qrContainer"), {
-            text: code,
-            width: 200,
-            height: 200,
-            colorDark: "#000000",
-            colorLight: "#FFFFFF",
-            correctLevel: QRCode.CorrectLevel.H
-          });
-
-          document.getElementById('downloadBtn').onclick = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = 440;
-            canvas.height = 520;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            const qrCanvas = document.querySelector('#qrContainer canvas');
-            ctx.drawImage(qrCanvas, 40, 40, 360, 360);
-            ctx.fillStyle = 'black';
-            ctx.font = 'bold 30px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(code, canvas.width / 2, 460);
-            const url = canvas.toDataURL('image/png');
-            const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Trac-QR-${machineId}-${plays}plays-${randomSuffix}.png`;
-            a.click();
-          };
-        });
+      document.getElementById('code').textContent = finalCode;
+      document.getElementById("qrContainer").innerHTML = "";
+      new QRCode(document.getElementById("qrContainer"), {
+        text: finalCode,
+        width: 200,
+        height: 200,
+        colorDark: "#000000",
+        colorLight: "#FFFFFF",
+        correctLevel: QRCode.CorrectLevel.H
       });
-    }
+
+      document.getElementById('downloadBtn').onclick = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 440;
+        canvas.height = 520;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const qrCanvas = document.querySelector('#qrContainer canvas');
+        ctx.drawImage(qrCanvas, 40, 40, 360, 360);
+        ctx.fillStyle = 'black';
+        ctx.font = 'bold 30px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(finalCode, canvas.width / 2, 460);
+        const url = canvas.toDataURL('image/png');
+        const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Trac-QR-${machineId}-${plays}plays-${randomSuffix}.png`;
+        a.click();
+      };
+
+    
+      await getFakeKey();
+    })();
   </script>
 </body>
 </html>
