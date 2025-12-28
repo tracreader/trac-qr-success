@@ -10,11 +10,10 @@
     .qr-wrapper { background: white; padding: 40px; display: inline-block; border-radius: 20px; margin: 30px 0; }
     #code { font-size: 2em; font-weight: bold; margin: 30px 0; }
     
-    /* Full-screen overlay */
     #overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.8); /* 50% opaque black */
+      background: rgba(0, 0, 0, 0.5);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -34,14 +33,13 @@
   </style>
 </head>
 <body>
-  <!-- Overlay (shown until clicked) -->
   <div id="overlay">
     <div id="overlay-text">Click anywhere to download<br>and reveal your QR code!</div>
   </div>
 
   <div class="qr-wrapper" id="qrContainer"></div>
   <div id="code"></div>
-  <button id="downloadBtn" style="display:none;">Download QR to Phone</button> <!-- Hidden, not needed anymore -->
+  <button id="downloadBtn" style="display:none;">Download QR to Phone</button>
 
   <script>
     const SECRET = "TracReader2025!SuperSecretKey#987";
@@ -53,7 +51,6 @@
       return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
     }
 
-    // Function to trigger download and remove overlay
     async function downloadAndReveal(code) {
       const canvas = document.createElement('canvas');
       canvas.width = 440;
@@ -74,7 +71,6 @@
       a.download = `Trac-QR-0243-${plays}plays-${randomSuffix}.png`;
       a.click();
 
-      // Remove overlay after download
       document.getElementById('overlay').remove();
     }
 
@@ -82,7 +78,6 @@
     const sessionId = urlParams.get('session_id');
     const amountStr = urlParams.get('amount');
 
-    // URL CLEANING
     if (sessionId || amountStr) {
       const cleanUrl = window.location.pathname + 
         "?status=success" +
@@ -102,7 +97,6 @@
 
     const savedCode = sessionStorage.getItem('trac_qr_code');
 
-    // EXIT WARNING
     function enableExitWarning() {
       window.addEventListener('beforeunload', function(e) {
         e.preventDefault();
@@ -110,7 +104,12 @@
       });
     }
 
-    // Generate and display QR (hidden behind overlay)
+    function addBackProtection() {
+      // Add 2 extra history states — max safe amount
+      history.pushState({protected: true}, '', window.location.href);
+      history.pushState({protected: true}, '', window.location.href);
+    }
+
     function displayQR(code) {
       document.getElementById('code').textContent = code;
       document.getElementById("qrContainer").innerHTML = "";
@@ -123,20 +122,18 @@
         correctLevel: QRCode.CorrectLevel.H
       });
 
-      // Click anywhere on overlay → download + reveal
       document.getElementById('overlay').addEventListener('click', function() {
         downloadAndReveal(code);
       });
 
       enableExitWarning();
+      addBackProtection(); // <-- This adds the 3-back protection
     }
 
     if (savedCode) {
-      // Refresh: show saved QR behind overlay
       displayQR(savedCode);
 
     } else if (isValidSession && isValidAmount && plays > 0) {
-      // First load: generate new
       generateHMAC(sessionId).then(sessionHash => {
         const randomId = sessionHash.substring(0, 4).toUpperCase();
         const dataToSign = `${plays}|${machineId}${randomId}`;
@@ -151,10 +148,9 @@
       });
 
     } else {
-      // Invalid
       document.getElementById("qrContainer").innerHTML = '';
       document.getElementById('code').textContent = 'Invalid payment';
-      document.getElementById('overlay').remove(); // No overlay on invalid
+      document.getElementById('overlay').remove();
     }
   </script>
 </body>
