@@ -6,17 +6,42 @@
   <title>QR Code</title>
   <script src="https://unpkg.com/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
-    body { background: black; color: #FFFF00; font-family: Arial; text-align: center; padding: 40px; margin: 0; }
+    body { background: black; color: #FFFF00; font-family: Arial; text-align: center; padding: 40px; margin: 0; position: relative; }
     .qr-wrapper { background: white; padding: 40px; display: inline-block; border-radius: 20px; margin: 30px 0; }
     #code { font-size: 2em; font-weight: bold; margin: 30px 0; }
-    button { padding: 25px 50px; font-size: 2em; background: #FFFF00; color: black; border: none; border-radius: 15px; cursor: pointer; margin: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-    button:hover { background: #FFFF99; }
+    
+    /* Full-screen overlay */
+    #overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.5); /* 50% opaque black */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      cursor: pointer;
+    }
+    #overlay-text {
+      color: #FFFF00;
+      font-size: 2.5em;
+      font-weight: bold;
+      text-align: center;
+      padding: 20px;
+    }
+    @media (max-width: 600px) {
+      #overlay-text { font-size: 2em; }
+    }
   </style>
 </head>
 <body>
+  <!-- Overlay (shown until clicked) -->
+  <div id="overlay">
+    <div id="overlay-text">Click anywhere to download<br>and reveal your QR code!</div>
+  </div>
+
   <div class="qr-wrapper" id="qrContainer"></div>
   <div id="code"></div>
-  <button id="downloadBtn">Download QR to Phone</button>
+  <button id="downloadBtn" style="display:none;">Download QR to Phone</button> <!-- Hidden, not needed anymore -->
 
   <script>
     const SECRET = "TracReader2025!SuperSecretKey#987";
@@ -28,11 +53,36 @@
       return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
     }
 
+    // Function to trigger download and remove overlay
+    async function downloadAndReveal(code) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 440;
+      canvas.height = 520;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const qrCanvas = document.querySelector('#qrContainer canvas');
+      ctx.drawImage(qrCanvas, 40, 40, 360, 360);
+      ctx.fillStyle = 'black';
+      ctx.font = 'bold 30px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(code, canvas.width / 2, 460);
+      const url = canvas.toDataURL('image/png');
+      const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Trac-QR-0243-${plays}plays-${randomSuffix}.png`;
+      a.click();
+
+      // Remove overlay after download
+      document.getElementById('overlay').remove();
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get('session_id');
     const amountStr = urlParams.get('amount');
 
-    // === URL CLEANING ===
+    // URL CLEANING
     if (sessionId || amountStr) {
       const cleanUrl = window.location.pathname + 
         "?status=success" +
@@ -52,20 +102,20 @@
 
     const savedCode = sessionStorage.getItem('trac_qr_code');
 
-    // === RELIABLE EXIT WARNING (works in all modern browsers) ===
+    // EXIT WARNING
     function enableExitWarning() {
       window.addEventListener('beforeunload', function(e) {
-        // This triggers the browser's built-in confirmation dialog
         e.preventDefault();
-        e.returnValue = '';  // Required for Chrome/Firefox to show dialog
+        e.returnValue = true;
       });
     }
 
-    if (savedCode) {
-      document.getElementById('code').textContent = savedCode;
+    // Generate and display QR (hidden behind overlay)
+    function displayQR(code) {
+      document.getElementById('code').textContent = code;
       document.getElementById("qrContainer").innerHTML = "";
       new QRCode(document.getElementById("qrContainer"), {
-        text: savedCode,
+        text: code,
         width: 200,
         height: 200,
         colorDark: "#000000",
@@ -73,30 +123,20 @@
         correctLevel: QRCode.CorrectLevel.H
       });
 
-      document.getElementById('downloadBtn').onclick = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 440;
-        canvas.height = 520;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        const qrCanvas = document.querySelector('#qrContainer canvas');
-        ctx.drawImage(qrCanvas, 40, 40, 360, 360);
-        ctx.fillStyle = 'black';
-        ctx.font = 'bold 30px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(savedCode, canvas.width / 2, 460);
-        const url = canvas.toDataURL('image/png');
-        const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Trac-QR-${machineId}-${plays}plays-${randomSuffix}.png`;
-        a.click();
-      };
+      // Click anywhere on overlay → download + reveal
+      document.getElementById('overlay').addEventListener('click', function() {
+        downloadAndReveal(code);
+      });
 
       enableExitWarning();
+    }
+
+    if (savedCode) {
+      // Refresh: show saved QR behind overlay
+      displayQR(savedCode);
 
     } else if (isValidSession && isValidAmount && plays > 0) {
+      // First load: generate new
       generateHMAC(sessionId).then(sessionHash => {
         const randomId = sessionHash.substring(0, 4).toUpperCase();
         const dataToSign = `${plays}|${machineId}${randomId}`;
@@ -106,47 +146,15 @@
           const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
 
           sessionStorage.setItem('trac_qr_code', code);
-
-          document.getElementById('code').textContent = code;
-          document.getElementById("qrContainer").innerHTML = "";
-          new QRCode(document.getElementById("qrContainer"), {
-            text: code,
-            width: 200,
-            height: 200,
-            colorDark: "#000000",
-            colorLight: "#FFFFFF",
-            correctLevel: QRCode.CorrectLevel.H
-          });
-
-          document.getElementById('downloadBtn').onclick = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = 440;
-            canvas.height = 520;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            const qrCanvas = document.querySelector('#qrContainer canvas');
-            ctx.drawImage(qrCanvas, 40, 40, 360, 360);
-            ctx.fillStyle = 'black';
-            ctx.font = 'bold 30px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(code, canvas.width / 2, 460);
-            const url = canvas.toDataURL('image/png');
-            const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Trac-QR-${machineId}-${plays}plays-${randomSuffix}.png`;
-            a.click();
-          };
-
-          enableExitWarning();
+          displayQR(code);
         });
       });
 
     } else {
+      // Invalid
       document.getElementById("qrContainer").innerHTML = '';
       document.getElementById('code').textContent = 'Invalid payment';
-      document.getElementById('downloadBtn').style.display = 'none';
+      document.getElementById('overlay').remove(); // No overlay on invalid
     }
   </script>
 </body>
