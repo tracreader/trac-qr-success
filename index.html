@@ -30,11 +30,29 @@
     @media (max-width: 600px) {
       #overlay-text { font-size: 2em; }
     }
+
+    /* New instruction text */
+    #instruction {
+      font-size: 2.2em;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+    #instruction .red {
+      color: #FF0000;
+    }
+    @media (max-width: 600px) {
+      #instruction { font-size: 1.8em; }
+    }
   </style>
 </head>
 <body>
   <div id="overlay">
     <div id="overlay-text">Click anywhere to download<br>and reveal your QR code!</div>
+  </div>
+
+  <!-- New instruction text -->
+  <div id="instruction">
+    NOW POINT SCREEN UP TO <span class="red">RED</span> TARGET!
   </div>
 
   <div class="qr-wrapper" id="qrContainer"></div>
@@ -66,15 +84,13 @@
       ctx.fillText(code, canvas.width / 2, 460);
       const url = canvas.toDataURL('image/png');
       const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+      // Updated filename: Pay-Point-Play-QR-xPlays-xxxx
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Pay!Point!Play!-QR-${plays}plays-${randomSuffix}.png`;
+      a.download = `Pay-Point-Play-QR-${plays}Plays-${randomSuffix}.png`;
       a.click();
 
-      // Clear temporary storage (so next payment gets fresh QR)
       localStorage.removeItem('trac_qr_code');
-
-      // Permanently save last downloaded QR for future viewing
       localStorage.setItem('last_qr_code', code);
 
       document.getElementById('overlay').remove();
@@ -101,8 +117,8 @@
     const isValidAmount = validAmounts.includes(amountStr);
     const plays = playsMap[amountStr] || 0;
 
-    const savedCode = localStorage.getItem('trac_qr_code'); // temporary recovery
-    const lastCode = localStorage.getItem('last_qr_code'); // permanent after download
+    const savedCode = localStorage.getItem('trac_qr_code');
+    const lastCode = localStorage.getItem('last_qr_code');
 
     function enableExitWarning() {
       window.addEventListener('beforeunload', function(e) {
@@ -136,7 +152,6 @@
       addBackProtection();
     }
 
-    // Priority: New payment always wins
     if (isValidSession && isValidAmount && plays > 0) {
       generateHMAC(sessionId).then(sessionHash => {
         const randomId = sessionHash.substring(0, 4).toUpperCase();
@@ -146,13 +161,12 @@
           const shortSig = hash.substring(0, 4).toUpperCase();
           const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
 
-          localStorage.setItem('trac_qr_code', code); // temporary for recovery
+          localStorage.setItem('trac_qr_code', code);
           displayQR(code);
         });
       });
 
     } else {
-      // Recovery mode
       const codeToShow = savedCode || lastCode;
       if (codeToShow) {
         displayQR(codeToShow);
