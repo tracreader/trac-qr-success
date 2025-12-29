@@ -68,7 +68,7 @@
       const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
       const a = document.createElement('a');
       a.href = url;
-      a.download = `QR-PAY!POINT!PLAY!-${plays}plays-${randomSuffix}.png`;
+      a.download = `Pay!Point!Play!-QR-${plays}plays-${randomSuffix}.png`;
       a.click();
 
       // Clear temporary storage (so next payment gets fresh QR)
