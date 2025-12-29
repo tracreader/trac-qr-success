@@ -71,7 +71,7 @@
       a.download = `Trac-QR-0243-${plays}plays-${randomSuffix}.png`;
       a.click();
 
-      // === CRITICAL: Clear localStorage ONLY after download ===
+      // Clear localStorage ONLY after download
       localStorage.removeItem('trac_qr_code');
 
       document.getElementById('overlay').remove();
@@ -97,9 +97,6 @@
     const isValidSession = sessionId && (sessionId.startsWith('cs_test_') || sessionId.startsWith('cs_live_'));
     const isValidAmount = validAmounts.includes(amountStr);
     const plays = playsMap[amountStr] || 0;
-
-    // Use localStorage for persistence across close/reopen
-    const savedCode = localStorage.getItem('trac_qr_code');
 
     function enableExitWarning() {
       window.addEventListener('beforeunload', function(e) {
@@ -133,12 +130,9 @@
       addBackProtection();
     }
 
-    if (savedCode) {
-      // Returning customer (browser closed, reopened, or fetch button used)
-      displayQR(savedCode);
-
-    } else if (isValidSession && isValidAmount && plays > 0) {
-      // Fresh payment
+    // FIXED LOGIC ORDER: New payment ALWAYS wins
+    if (isValidSession && isValidAmount && plays > 0) {
+      // Fresh successful payment — generate new QR, overwrite saved
       generateHMAC(sessionId).then(sessionHash => {
         const randomId = sessionHash.substring(0, 4).toUpperCase();
         const dataToSign = `${plays}|${machineId}${randomId}`;
@@ -147,17 +141,21 @@
           const shortSig = hash.substring(0, 4).toUpperCase();
           const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
 
-          // Save to localStorage for recovery
-          localStorage.setItem('trac_qr_code', code);
-
+          localStorage.setItem('trac_qr_code', code);  // Overwrite old
           displayQR(code);
         });
       });
 
     } else {
-      document.getElementById("qrContainer").innerHTML = '';
-      document.getElementById('code').textContent = 'Invalid payment';
-      document.getElementById('overlay').remove();
+      // No new payment — try recovery from localStorage
+      const savedCode = localStorage.getItem('trac_qr_code');
+      if (savedCode) {
+        displayQR(savedCode);
+      } else {
+        document.getElementById("qrContainer").innerHTML = '';
+        document.getElementById('code').textContent = 'Invalid payment';
+        document.getElementById('overlay').remove();
+      }
     }
   </script>
 </body>
