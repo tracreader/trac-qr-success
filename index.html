@@ -95,7 +95,8 @@
     const isValidAmount = validAmounts.includes(amountStr);
     const plays = playsMap[amountStr] || 0;
 
-    const savedCode = sessionStorage.getItem('trac_qr_code');
+    // CHANGED: Use localStorage instead of sessionStorage
+    const savedCode = localStorage.getItem('trac_qr_code');
 
     function enableExitWarning() {
       window.addEventListener('beforeunload', function(e) {
@@ -105,7 +106,6 @@
     }
 
     function addBackProtection() {
-      // Add 2 extra history states — max safe amount
       history.pushState({protected: true}, '', window.location.href);
       history.pushState({protected: true}, '', window.location.href);
     }
@@ -127,13 +127,15 @@
       });
 
       enableExitWarning();
-      addBackProtection(); // <-- This adds the 3-back protection
+      addBackProtection();
     }
 
     if (savedCode) {
+      // Customer returned — show saved QR from localStorage
       displayQR(savedCode);
 
     } else if (isValidSession && isValidAmount && plays > 0) {
+      // New payment — generate and save to localStorage
       generateHMAC(sessionId).then(sessionHash => {
         const randomId = sessionHash.substring(0, 4).toUpperCase();
         const dataToSign = `${plays}|${machineId}${randomId}`;
@@ -142,7 +144,7 @@
           const shortSig = hash.substring(0, 4).toUpperCase();
           const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
 
-          sessionStorage.setItem('trac_qr_code', code);
+          localStorage.setItem('trac_qr_code', code);  // <-- SAVED TO localStorage
           displayQR(code);
         });
       });
