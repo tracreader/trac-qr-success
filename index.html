@@ -71,8 +71,11 @@
       a.download = `Trac-QR-0243-${plays}plays-${randomSuffix}.png`;
       a.click();
 
-      // Clear localStorage ONLY after download
+      // Clear temporary storage (so next payment gets fresh QR)
       localStorage.removeItem('trac_qr_code');
+
+      // Permanently save last downloaded QR for future viewing
+      localStorage.setItem('last_qr_code', code);
 
       document.getElementById('overlay').remove();
     }
@@ -97,6 +100,9 @@
     const isValidSession = sessionId && (sessionId.startsWith('cs_test_') || sessionId.startsWith('cs_live_'));
     const isValidAmount = validAmounts.includes(amountStr);
     const plays = playsMap[amountStr] || 0;
+
+    const savedCode = localStorage.getItem('trac_qr_code'); // temporary recovery
+    const lastCode = localStorage.getItem('last_qr_code'); // permanent after download
 
     function enableExitWarning() {
       window.addEventListener('beforeunload', function(e) {
@@ -130,9 +136,8 @@
       addBackProtection();
     }
 
-    // FIXED LOGIC ORDER: New payment ALWAYS wins
+    // Priority: New payment always wins
     if (isValidSession && isValidAmount && plays > 0) {
-      // Fresh successful payment — generate new QR, overwrite saved
       generateHMAC(sessionId).then(sessionHash => {
         const randomId = sessionHash.substring(0, 4).toUpperCase();
         const dataToSign = `${plays}|${machineId}${randomId}`;
@@ -141,19 +146,19 @@
           const shortSig = hash.substring(0, 4).toUpperCase();
           const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
 
-          localStorage.setItem('trac_qr_code', code);  // Overwrite old
+          localStorage.setItem('trac_qr_code', code); // temporary for recovery
           displayQR(code);
         });
       });
 
     } else {
-      // No new payment — try recovery from localStorage
-      const savedCode = localStorage.getItem('trac_qr_code');
-      if (savedCode) {
-        displayQR(savedCode);
+      // Recovery mode
+      const codeToShow = savedCode || lastCode;
+      if (codeToShow) {
+        displayQR(codeToShow);
       } else {
         document.getElementById("qrContainer").innerHTML = '';
-        document.getElementById('code').textContent = 'Invalid payment: Check download folder for QR Code!';
+        document.getElementById('code').textContent = 'Invalid payment';
         document.getElementById('overlay').remove();
       }
     }
