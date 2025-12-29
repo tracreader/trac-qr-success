@@ -71,7 +71,7 @@
       a.download = `Trac-QR-0243-${plays}plays-${randomSuffix}.png`;
       a.click();
 
-      // === CLEAR localStorage ONLY AFTER SUCCESSFUL DOWNLOAD ===
+      // === CRITICAL: Clear localStorage ONLY after download ===
       localStorage.removeItem('trac_qr_code');
 
       document.getElementById('overlay').remove();
@@ -98,6 +98,7 @@
     const isValidAmount = validAmounts.includes(amountStr);
     const plays = playsMap[amountStr] || 0;
 
+    // Use localStorage for persistence across close/reopen
     const savedCode = localStorage.getItem('trac_qr_code');
 
     function enableExitWarning() {
@@ -133,9 +134,11 @@
     }
 
     if (savedCode) {
+      // Returning customer (browser closed, reopened, or fetch button used)
       displayQR(savedCode);
 
     } else if (isValidSession && isValidAmount && plays > 0) {
+      // Fresh payment
       generateHMAC(sessionId).then(sessionHash => {
         const randomId = sessionHash.substring(0, 4).toUpperCase();
         const dataToSign = `${plays}|${machineId}${randomId}`;
@@ -144,7 +147,9 @@
           const shortSig = hash.substring(0, 4).toUpperCase();
           const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
 
+          // Save to localStorage for recovery
           localStorage.setItem('trac_qr_code', code);
+
           displayQR(code);
         });
       });
