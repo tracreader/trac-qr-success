@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pay Point Play</title>
+  <style>
+    body { background: black; color: #FFFF00; font-family: Arial; text-align: center; padding: 40px; }
+    h1 { font-size: 3em; }
+    .buttons { margin: 40px 0; }
+    .buy-btn { display: block; margin: 20px auto; padding: 30px; background: #FFFF00; color: black; font-size: 2em; text-decoration: none; border-radius: 15px; width: 80%; max-width: 600px; }
+  </style>
+</head>
+<body>
+  <h1>Select Your Plays</h1>
+  <div class="buttons">
+    <!-- Replace with YOUR actual 4 Payment Link URLs -->
+    <a id="btn1" class="buy-btn" href="https://buy.stripe.com/test_9B63cn7i6b8vbwh7QefMA01">Buy 1 Play ($1.39)</a>
+    <a id="btn3" class="buy-btn" href="https://buy.stripe.com/YOUR_3.39_LINK">Buy 3 Plays ($3.39)</a>
+    <a id="btn5" class="buy-btn" href="https://buy.stripe.com/YOUR_5.39_LINK">Buy 5 Plays ($5.39)</a>
+    <a id="btn10" class="buy-btn" href="https://buy.stripe.com/YOUR_10.39_LINK">Buy 10 Plays ($10.39)</a>
+  </div>
+
+  <script>
+    // Read obfuscated machine ID from URL (e.g., ?mid=0243-du3j)
+    const urlParams = new URLSearchParams(window.location.search);
+    const obfuscatedMid = urlParams.get('mid') || 'unknown';
+
+    // Extract real machine ID (remove last 5 chars: "-" + 4 random)
+    const realMachineId = obfuscatedMid.length > 5 ? obfuscatedMid.slice(0, -5) : 'unknown';
+
+    // Save to localStorage (hidden)
+    localStorage.setItem('current_machine_id', realMachineId);
+
+    // Clean URL (remove mid, add dummies)
+    const cleanUrl = window.location.pathname + "?status=ready&ref=" + Math.random().toString(36).substring(2, 10);
+    window.history.replaceState({}, document.title, cleanUrl);
+
+    // Update buttons to pass real machine ID to Stripe (hidden)
+    document.querySelectorAll('.buy-btn').forEach(btn => {
+      const url = new URL(btn.href);
+      url.searchParams.set('client_reference_id', realMachineId);
+      btn.href = url.toString();
+    });
+  </script>
+</body>
+</html>
