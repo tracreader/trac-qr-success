@@ -6,15 +6,26 @@
   <title>Pay Point Play</title>
   <style>
     body { background: black; color: #FFFF00; font-family: Arial; text-align: center; padding: 40px; }
-    h1 { font-size: 3em; }
+    h1 { font-size: 2.8em; margin: 20px 0; }
+    h2 { font-size: 2em; margin: 30px 0; color: #FFFF00; }
+    #machine-info { font-size: 1.8em; margin: 20px 0; color: #FFFFFF; font-weight: bold; }
     .buttons { margin: 40px 0; }
     .buy-btn { display: block; margin: 20px auto; padding: 30px; background: #FFFF00; color: black; font-size: 2em; text-decoration: none; border-radius: 15px; width: 80%; max-width: 600px; }
+    @media (max-width: 600px) {
+      h1 { font-size: 2.4em; }
+      h2 { font-size: 1.8em; }
+      #machine-info { font-size: 1.6em; }
+      .buy-btn { font-size: 1.8em; padding: 25px; }
+    }
   </style>
 </head>
 <body>
-  <h1>Select Your Plays</h1>
+  <h1>Pay Point Play</h1>
+  <h2>Select Your Plays</h2>
+  <div id="machine-info">You Have Chosen Machine: <span id="machine-id">Loading...</span></div>
+
   <div class="buttons">
-    <!-- Replace with YOUR actual 4 Payment Link URLs -->
+    <!-- Your actual test links -->
     <a id="btn1" class="buy-btn" href="https://buy.stripe.com/test_9B63cn7i6b8vbwh7QefMA01">Buy 1 Play ($1.39)</a>
     <a id="btn3" class="buy-btn" href="https://buy.stripe.com/test_14A8wH6e2a4r9o92vUfMA03">Buy 3 Plays ($3.39)</a>
     <a id="btn5" class="buy-btn" href="https://buy.stripe.com/test_6oUeV5aui1xV0RD1rQfMA00">Buy 5 Plays ($5.39)</a>
@@ -29,11 +40,18 @@
     // Extract real machine ID (remove last 5 chars: "-" + 4 random)
     const realMachineId = obfuscatedMid.length > 5 ? obfuscatedMid.slice(0, -5) : 'unknown';
 
+    // Display machine ID on page
+    document.getElementById('machine-id').textContent = realMachineId === 'unknown' ? 'Unknown' : realMachineId;
+
     // Save to localStorage (hidden)
     localStorage.setItem('current_machine_id', realMachineId);
 
-    // Clean URL (remove mid, add dummies)
-    const cleanUrl = window.location.pathname + "?status=ready&ref=" + Math.random().toString(36).substring(2, 10);
+    // Clean URL with dummy variables (same as success page — tamper-proof)
+    const cleanUrl = window.location.pathname + 
+      "?status=ready" +
+      "&ref=" + Math.random().toString(36).substring(2, 10) +
+      "&payment_id=" + Date.now() + Math.floor(Math.random() * 10000) +
+      "&token=" + Math.random().toString(36).substring(2, 8);
     window.history.replaceState({}, document.title, cleanUrl);
 
     // Update buttons to pass real machine ID to Stripe (hidden)
