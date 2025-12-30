@@ -32,26 +32,28 @@
   </div>
 
   <script>
-    // Get machine ID from localStorage first (tamper-proof)
-    let realMachineId = localStorage.getItem('current_machine_id') || 'unknown';
+    // Always read mid from URL (if present) — this allows switching machines
+    const urlParams = new URLSearchParams(window.location.search);
+    const obfuscatedMid = urlParams.get('mid');
 
-    // If not in localStorage, read from URL (first load only)
-    if (realMachineId === 'unknown') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const obfuscatedMid = urlParams.get('mid') || 'unknown';
+    let realMachineId = 'unknown';
 
-      // Extract real machine ID: everything before the LAST "-"
+    if (obfuscatedMid) {
+      // Extract real machine ID: everything before the last "-"
       const lastDashIndex = obfuscatedMid.lastIndexOf('-');
-      realMachineId = lastDashIndex > 0 ? obfuscatedMid.substring(0, lastDashIndex) : 'unknown';
+      realMachineId = lastDashIndex > 0 ? obfuscatedMid.substring(0, lastDashIndex) : obfuscatedMid;
 
-      // Save to localStorage for persistence
+      // Overwrite localStorage with the new (current) machine ID
       localStorage.setItem('current_machine_id', realMachineId);
+    } else {
+      // No mid in URL — fall back to saved (recovery or refresh)
+      realMachineId = localStorage.getItem('current_machine_id') || 'unknown';
     }
 
-    // Display machine ID
+    // Display the machine ID
     document.getElementById('machine-id').textContent = realMachineId === 'unknown' ? 'Unknown' : realMachineId;
 
-    // Clean URL with dummy variables (same as success page)
+    // Clean URL with dummy variables
     const cleanUrl = window.location.pathname + 
       "?status=ready" +
       "&ref=" + Math.random().toString(36).substring(2, 10) +
@@ -59,7 +61,7 @@
       "&token=" + Math.random().toString(36).substring(2, 8);
     window.history.replaceState({}, document.title, cleanUrl);
 
-    // Update buttons to pass real machine ID to Stripe (hidden)
+    // Update buttons to pass the current real machine ID to Stripe
     document.querySelectorAll('.buy-btn').forEach(btn => {
       const url = new URL(btn.href);
       url.searchParams.set('client_reference_id', realMachineId);
