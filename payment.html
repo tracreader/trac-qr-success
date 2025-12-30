@@ -25,7 +25,6 @@
   <div id="machine-info">You Have Chosen Machine: <span id="machine-id">Loading...</span></div>
 
   <div class="buttons">
-    <!-- Your actual test links -->
     <a id="btn1" class="buy-btn" href="https://buy.stripe.com/test_9B63cn7i6b8vbwh7QefMA01">Buy 1 Play ($1.39)</a>
     <a id="btn3" class="buy-btn" href="https://buy.stripe.com/test_14A8wH6e2a4r9o92vUfMA03">Buy 3 Plays ($3.39)</a>
     <a id="btn5" class="buy-btn" href="https://buy.stripe.com/test_6oUeV5aui1xV0RD1rQfMA00">Buy 5 Plays ($5.39)</a>
@@ -33,20 +32,26 @@
   </div>
 
   <script>
-    // Read obfuscated machine ID from URL (e.g., ?mid=0243-du3j)
-    const urlParams = new URLSearchParams(window.location.search);
-    const obfuscatedMid = urlParams.get('mid') || 'unknown';
+    // Get machine ID from localStorage first (tamper-proof)
+    let realMachineId = localStorage.getItem('current_machine_id') || 'unknown';
 
-    // Extract real machine ID (remove last 5 chars: "-" + 4 random)
-    const realMachineId = obfuscatedMid.length > 5 ? obfuscatedMid.slice(0, -5) : 'unknown';
+    // If not in localStorage, read from URL (first load only)
+    if (realMachineId === 'unknown') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const obfuscatedMid = urlParams.get('mid') || 'unknown';
 
-    // Display machine ID on page
+      // Extract real machine ID: everything before the LAST "-"
+      const lastDashIndex = obfuscatedMid.lastIndexOf('-');
+      realMachineId = lastDashIndex > 0 ? obfuscatedMid.substring(0, lastDashIndex) : 'unknown';
+
+      // Save to localStorage for persistence
+      localStorage.setItem('current_machine_id', realMachineId);
+    }
+
+    // Display machine ID
     document.getElementById('machine-id').textContent = realMachineId === 'unknown' ? 'Unknown' : realMachineId;
 
-    // Save to localStorage (hidden)
-    localStorage.setItem('current_machine_id', realMachineId);
-
-    // Clean URL with dummy variables (same as success page — tamper-proof)
+    // Clean URL with dummy variables (same as success page)
     const cleanUrl = window.location.pathname + 
       "?status=ready" +
       "&ref=" + Math.random().toString(36).substring(2, 10) +
