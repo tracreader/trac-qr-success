@@ -5,19 +5,77 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pay Point Play</title>
   <style>
-    body { background: black; color: #FFFF00; font-family: Arial; text-align: center; padding: 40px; }
-    h1 { font-size: 2.8em; margin: 20px 0; }
-    h2 { font-size: 2em; margin: 30px 0; color: #FFFF00; }
-    #machine-info { font-size: 1.8em; margin: 20px 0; color: #FFFFFF; font-weight: bold; }
-    #no-machine { font-size: 2.2em; font-weight: bold; margin: 60px 0; color: #FFFF00; }
+    body { background: black; color: #FFFF00; font-family: Arial, sans-serif; text-align: center; padding: 40px; margin: 0; }
+    h1 { 
+      font-size: 3.2em; 
+      margin: 20px 0; 
+      white-space: nowrap; /* Forces one line */
+    }
+    h2 { 
+      font-size: 2em; 
+      margin: 20px 0; 
+      color: #FFFF00; 
+    }
+    .fee { 
+      font-size: 1.2em; 
+      margin: 10px 0 30px 0; 
+      color: #FFFF99; 
+    }
+    #machine-info { 
+      font-size: 1.8em; 
+      margin: 30px 0; 
+      color: #FFFFFF; 
+      font-weight: bold; 
+    }
+    #machine-info .big { 
+      font-size: 1.4em; 
+      font-weight: bolder; 
+    }
+    #no-machine { 
+      font-size: 2.2em; 
+      font-weight: bold; 
+      margin: 60px 0; 
+      color: #FFFF00; 
+    }
     .buttons { margin: 40px 0; }
-    .buy-btn { display: block; margin: 20px auto; padding: 30px; background: #FFFF00; color: black; font-size: 2em; text-decoration: none; border-radius: 15px; width: 80%; max-width: 600px; }
-    .buy-btn.disabled { background: #666666; color: #999999; pointer-events: none; }
-    .lost-btn { display: block; margin: 40px auto; padding: 20px; background: #333333; color: #FFFF00; font-size: 1.8em; text-decoration: none; border-radius: 15px; width: 80%; max-width: 600px; border: 2px solid #FFFF00; }
+    .buy-btn { 
+      display: block; 
+      margin: 20px auto; 
+      padding: 30px; 
+      background: #FFFF00; 
+      color: black; 
+      font-size: 2em; 
+      font-weight: bold; /* Bold text */
+      text-transform: uppercase; /* All uppercase */
+      text-decoration: none; 
+      border-radius: 15px; 
+      width: 80%; 
+      max-width: 600px; 
+    }
+    .buy-btn.disabled { 
+      background: #666666; 
+      color: #999999; 
+      pointer-events: none; 
+    }
+    .lost-btn { 
+      display: block; 
+      margin: 40px auto; 
+      padding: 20px; 
+      background: #333333; 
+      color: #FFFF00; 
+      font-size: 1.8em; 
+      text-decoration: none; 
+      border-radius: 15px; 
+      width: 80%; 
+      max-width: 600px; 
+      border: 2px solid #FFFF00; 
+    }
     @media (max-width: 600px) {
-      h1 { font-size: 2.4em; }
+      h1 { font-size: 2.6em; }
       h2 { font-size: 1.8em; }
+      .fee { font-size: 1em; }
       #machine-info { font-size: 1.6em; }
+      #machine-info .big { font-size: 1.2em; }
       #no-machine { font-size: 1.8em; }
       .buy-btn { font-size: 1.8em; padding: 25px; }
       .lost-btn { font-size: 1.6em; }
@@ -25,17 +83,22 @@
   </style>
 </head>
 <body>
-  <h1>PAY!POINT!PLAY!</h1>
-  <h2>SELECT YOUR PLAY(S)<br>(+$0.39 MOBILE PROCESSING FEE)</h2>
-  <div id="machine-info">ONLY FOR MACHINE: <span id="machine-id">Loading...</span></div>
+  <h1>PAY! POINT! PLAY!</h1>
+  <h2>SELECT YOUR PLAY(S)</h2>
+  <div class="fee">+$0.39 MOBILE PROCESSING FEE</div>
+
+  <div id="machine-info">
+    ONLY WORKS ON<br>
+    <span class="big">MACHINE: <span id="machine-id">Loading...</span></span>
+  </div>
 
   <div id="no-machine" style="display:none;">SCAN QR CODE TO PLAY!</div>
 
   <div class="buttons">
     <a id="btn1" class="buy-btn" href="https://buy.stripe.com/test_9B63cn7i6b8vbwh7QefMA01">BUY 1 PLAY ($1.39)</a>
-    <a id="btn3" class="buy-btn" href="https://buy.stripe.com/test_14A8wH6e2a4r9o92vUfMA03">Buy 3 Plays ($3.39)</a>
-    <a id="btn5" class="buy-btn" href="https://buy.stripe.com/test_6oUeV5aui1xV0RD1rQfMA00">Buy 5 Plays ($5.39)</a>
-    <a id="btn10" class="buy-btn" href="https://buy.stripe.com/test_28EbITbym0tR2ZL7QefMA04">Buy 10 Plays ($10.39)</a>
+    <a id="btn3" class="buy-btn" href="https://buy.stripe.com/test_14A8wH6e2a4r9o92vUfMA03">BUY 3 PLAYS ($3.39)</a>
+    <a id="btn5" class="buy-btn" href="https://buy.stripe.com/test_6oUeV5aui1xV0RD1rQfMA00">BUY 5 PLAYS ($5.39)</a>
+    <a id="btn10" class="buy-btn" href="https://buy.stripe.com/test_28EbITbym0tR2ZL7QefMA04">BUY 10 PLAYS ($10.39)</a>
   </div>
 
   <!-- Lost QR Code button -->
