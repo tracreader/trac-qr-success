@@ -128,7 +128,6 @@
     const sessionId = urlParams.get('session_id');
     const amountStr = urlParams.get('amount');
 
-    // Dummy URL (clean & realistic)
     if (sessionId || amountStr) {
       const cleanUrl = window.location.pathname +
         "?status=success" +
@@ -149,7 +148,6 @@
     const savedCode = localStorage.getItem('trac_qr_code');
     const lastCode = localStorage.getItem('last_qr_code');
 
-    // One extra back press
     function addBackProtection() {
       history.pushState({protected: true}, '', window.location.href);
     }
