@@ -9,7 +9,7 @@
     body { background: black; color: #FFFF00; font-family: Arial; text-align: center; padding: 40px; margin: 0; position: relative; }
     .qr-wrapper { background: white; padding: 40px; display: inline-block; border-radius: 20px; margin: 30px 0; }
     #code { font-size: 2em; font-weight: bold; margin: 30px 0; }
-   
+    
     #overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -54,9 +54,9 @@
   <div id="code"></div>
 
   <script>
-    // Generate 12-character nonce (shortest safe length — bulletproof)
+    // Generate 12-character nonce in UPPERCASE letters
     function generateNonce() {
-      const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
       let result = '';
       for (let i = 0; i < 12; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -146,7 +146,7 @@
     }
 
     if (isValidSession && isValidAmount && plays > 0) {
-      const nonce = generateNonce(); // 12 chars — short & safe
+      const nonce = generateNonce(); // 12 uppercase chars
       const payload = `${plays}|${machineId}|${nonce}`;
       const code = payload;
 
