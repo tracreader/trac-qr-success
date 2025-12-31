@@ -6,41 +6,10 @@
   <title>QR Code</title>
   <script src="https://unpkg.com/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
-    body {
-      background: black;
-      color: #FFFF00;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-    .container {
-      width: 100%;
-      max-width: 600px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .qr-wrapper {
-      background: white;
-      padding: 40px;
-      border-radius: 20px;
-      margin: 20px 0;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-    }
-    #code {
-      font-size: 2em;
-      font-weight: bold;
-      margin: 30px 0;
-      word-break: break-all;
-      color: #FFFF00;
-    }
-    
+    body { background: black; color: #FFFF00; font-family: Arial; text-align: center; padding: 40px; margin: 0; position: relative; }
+    .qr-wrapper { background: white; padding: 40px; display: inline-block; border-radius: 20px; margin: 30px 0; }
+    #code { font-size: 2em; font-weight: bold; margin: 30px 0; }
+   
     #overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -58,6 +27,11 @@
       text-align: center;
       padding: 20px;
     }
+    @media (max-width: 600px) {
+      #overlay-text { font-size: 2em; }
+    }
+
+    /* New instruction text */
     #instruction {
       font-size: 2.2em;
       font-weight: bold;
@@ -67,10 +41,7 @@
       color: #FF0000;
     }
     @media (max-width: 600px) {
-      #overlay-text { font-size: 2em; }
       #instruction { font-size: 1.8em; }
-      #code { font-size: 1.6em; }
-      .qr-wrapper { padding: 30px; }
     }
   </style>
 </head>
@@ -79,24 +50,23 @@
     <div id="overlay-text">Click anywhere to download<br>and reveal your QR code!</div>
   </div>
 
+  <!-- New instruction text -->
   <div id="instruction">
     NOW POINT SCREEN UP TO <span class="red">RED</span> TARGET!
   </div>
 
-  <div class="container">
-    <div class="qr-wrapper" id="qrContainer"></div>
-    <div id="code"></div>
-  </div>
+  <div class="qr-wrapper" id="qrContainer"></div>
+  <div id="code"></div>
+  <button id="downloadBtn" style="display:none;">Download QR to Phone</button>
 
   <script>
-    // Generate 12-character UPPERCASE nonce
-    function generateNonce() {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      let result = '';
-      for (let i = 0; i < 12; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return result;
+    const SECRET = "TracReader2025!SuperSecretKey#987";
+
+    async function generateHMAC(message) {
+      const enc = new TextEncoder();
+      const key = await crypto.subtle.importKey("raw", enc.encode(SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+      const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
+      return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
     }
 
     async function downloadAndReveal(code) {
@@ -114,6 +84,7 @@
       ctx.fillText(code, canvas.width / 2, 460);
       const url = canvas.toDataURL('image/png');
       const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+      // Updated filename: Pay-Point-Play-QR-xPlays-xxxx
       const a = document.createElement('a');
       a.href = url;
       a.download = `Pay-Point-Play-QR-${plays}Plays-${randomSuffix}.png`;
@@ -121,6 +92,7 @@
 
       localStorage.removeItem('trac_qr_code');
       localStorage.setItem('last_qr_code', code);
+
       document.getElementById('overlay').remove();
     }
 
@@ -148,7 +120,15 @@
     const savedCode = localStorage.getItem('trac_qr_code');
     const lastCode = localStorage.getItem('last_qr_code');
 
+    function enableExitWarning() {
+      window.addEventListener('beforeunload', function(e) {
+        e.preventDefault();
+        e.returnValue = true;
+      });
+    }
+
     function addBackProtection() {
+      history.pushState({protected: true}, '', window.location.href);
       history.pushState({protected: true}, '', window.location.href);
     }
 
@@ -168,16 +148,23 @@
         downloadAndReveal(code);
       });
 
+      enableExitWarning();
       addBackProtection();
     }
 
     if (isValidSession && isValidAmount && plays > 0) {
-      const nonce = generateNonce();
-      const payload = `${plays}|${machineId}|${nonce}`;
-      const code = payload;
+      generateHMAC(sessionId).then(sessionHash => {
+        const randomId = sessionHash.substring(0, 4).toUpperCase();
+        const dataToSign = `${plays}|${machineId}${randomId}`;
 
-      localStorage.setItem('trac_qr_code', code);
-      displayQR(code);
+        generateHMAC(dataToSign).then(hash => {
+          const shortSig = hash.substring(0, 4).toUpperCase();
+          const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
+
+          localStorage.setItem('trac_qr_code', code);
+          displayQR(code);
+        });
+      });
 
     } else {
       const codeToShow = savedCode || lastCode;
