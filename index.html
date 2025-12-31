@@ -30,8 +30,6 @@
     @media (max-width: 600px) {
       #overlay-text { font-size: 2em; }
     }
-
-    /* New instruction text */
     #instruction {
       font-size: 2.2em;
       font-weight: bold;
@@ -49,24 +47,21 @@
   <div id="overlay">
     <div id="overlay-text">Click anywhere to download<br>and reveal your QR code!</div>
   </div>
-
-  <!-- New instruction text -->
   <div id="instruction">
     NOW POINT SCREEN UP TO <span class="red">RED</span> TARGET!
   </div>
-
   <div class="qr-wrapper" id="qrContainer"></div>
   <div id="code"></div>
-  <button id="downloadBtn" style="display:none;">Download QR to Phone</button>
 
   <script>
-    const SECRET = "TracReader2025!SuperSecretKey#987";
-
-    async function generateHMAC(message) {
-      const enc = new TextEncoder();
-      const key = await crypto.subtle.importKey("raw", enc.encode(SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-      const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
-      return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
+    // Generate strong random nonce (20 chars = high entropy)
+    function generateNonce() {
+      const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      for (let i = 0; i < 20; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
     }
 
     async function downloadAndReveal(code) {
@@ -84,7 +79,6 @@
       ctx.fillText(code, canvas.width / 2, 460);
       const url = canvas.toDataURL('image/png');
       const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-      // Updated filename: Pay-Point-Play-QR-xPlays-xxxx
       const a = document.createElement('a');
       a.href = url;
       a.download = `Pay-Point-Play-QR-${plays}Plays-${randomSuffix}.png`;
@@ -92,7 +86,6 @@
 
       localStorage.removeItem('trac_qr_code');
       localStorage.setItem('last_qr_code', code);
-
       document.getElementById('overlay').remove();
     }
 
@@ -101,7 +94,7 @@
     const amountStr = urlParams.get('amount');
 
     if (sessionId || amountStr) {
-      const cleanUrl = window.location.pathname + 
+      const cleanUrl = window.location.pathname +
         "?status=success" +
         "&ref=" + Math.random().toString(36).substring(2, 10) +
         "&payment_id=" + Date.now() + Math.floor(Math.random() * 10000) +
@@ -153,18 +146,12 @@
     }
 
     if (isValidSession && isValidAmount && plays > 0) {
-      generateHMAC(sessionId).then(sessionHash => {
-        const randomId = sessionHash.substring(0, 4).toUpperCase();
-        const dataToSign = `${plays}|${machineId}${randomId}`;
+      const nonce = generateNonce();
+      const payload = `${plays}|${machineId}|${nonce}`;
+      const code = payload;
 
-        generateHMAC(dataToSign).then(hash => {
-          const shortSig = hash.substring(0, 4).toUpperCase();
-          const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
-
-          localStorage.setItem('trac_qr_code', code);
-          displayQR(code);
-        });
-      });
+      localStorage.setItem('trac_qr_code', code);
+      displayQR(code);
 
     } else {
       const codeToShow = savedCode || lastCode;
