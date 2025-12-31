@@ -76,11 +76,11 @@
 </head>
 <body>
   <div id="overlay">
-    <div id="overlay-text">CLICK ANYWHERE TO<br>DOWNLOAD AND REVEAL<br>YOUR QR CODE!</div>
+    <div id="overlay-text">Click anywhere to download<br>and reveal your QR code!</div>
   </div>
 
   <div id="instruction">
-    HOLD SCREEN UP<br>TO <span class="red">RED</span> TARGET!
+    NOW POINT SCREEN UP TO <span class="red">RED</span> TARGET!
   </div>
 
   <div class="container">
@@ -116,7 +116,7 @@
       const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Pay!Point!Play! QR-${plays}Plays-${randomSuffix}.png`;
+      a.download = `Pay-Point-Play-QR-${plays}Plays-${randomSuffix}.png`;
       a.click();
 
       localStorage.removeItem('trac_qr_code');
@@ -128,6 +128,7 @@
     const sessionId = urlParams.get('session_id');
     const amountStr = urlParams.get('amount');
 
+    // Dummy URL (clean & realistic)
     if (sessionId || amountStr) {
       const cleanUrl = window.location.pathname +
         "?status=success" +
@@ -148,7 +149,7 @@
     const savedCode = localStorage.getItem('trac_qr_code');
     const lastCode = localStorage.getItem('last_qr_code');
 
-    // Only one extra back press (2 total to leave)
+    // One extra back press
     function addBackProtection() {
       history.pushState({protected: true}, '', window.location.href);
     }
