@@ -76,11 +76,11 @@
 </head>
 <body>
   <div id="overlay">
-    <div id="overlay-text">Click anywhere to download<br>and reveal your QR code!</div>
+    <div id="overlay-text">CLICK ANYWHERE TO DOWNLOAD<br>and reveal your QR code!</div>
   </div>
 
   <div id="instruction">
-    NOW POINT SCREEN UP TO <span class="red">RED</span> TARGET!
+    HOLD SCREEN UP TO <span class="red">RED</span> TARGET!
   </div>
 
   <div class="container">
@@ -116,7 +116,7 @@
       const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Pay-Point-Play-QR-${plays}Plays-${randomSuffix}.png`;
+      a.download = `Pay!Point!Play! QR-${plays}Plays-${randomSuffix}.png`;
       a.click();
 
       localStorage.removeItem('trac_qr_code');
