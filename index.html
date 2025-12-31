@@ -6,10 +6,41 @@
   <title>QR Code</title>
   <script src="https://unpkg.com/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
-    body { background: black; color: #FFFF00; font-family: Arial; text-align: center; padding: 40px; margin: 0; position: relative; }
-    .qr-wrapper { background: white; padding: 40px; display: inline-block; border-radius: 20px; margin: 30px 0; }
-    #code { font-size: 2em; font-weight: bold; margin: 30px 0; }
-   
+    body {
+      background: black;
+      color: #FFFF00;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .qr-wrapper {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      margin: 20px 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+    }
+    #code {
+      font-size: 2em;
+      font-weight: bold;
+      margin: 30px 0;
+      word-break: break-all;
+      color: #FFFF00;
+    }
+    
     #overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -27,9 +58,6 @@
       text-align: center;
       padding: 20px;
     }
-    @media (max-width: 600px) {
-      #overlay-text { font-size: 2em; }
-    }
     #instruction {
       font-size: 2.2em;
       font-weight: bold;
@@ -39,7 +67,10 @@
       color: #FF0000;
     }
     @media (max-width: 600px) {
+      #overlay-text { font-size: 2em; }
       #instruction { font-size: 1.8em; }
+      #code { font-size: 1.6em; }
+      .qr-wrapper { padding: 30px; }
     }
   </style>
 </head>
@@ -47,16 +78,20 @@
   <div id="overlay">
     <div id="overlay-text">Click anywhere to download<br>and reveal your QR code!</div>
   </div>
+
   <div id="instruction">
     NOW POINT SCREEN UP TO <span class="red">RED</span> TARGET!
   </div>
-  <div class="qr-wrapper" id="qrContainer"></div>
-  <div id="code"></div>
+
+  <div class="container">
+    <div class="qr-wrapper" id="qrContainer"></div>
+    <div id="code"></div>
+  </div>
 
   <script>
-    // Generate 12-character nonce (shortest safe length — bulletproof)
+    // Generate 12-character UPPERCASE nonce
     function generateNonce() {
-      const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
       let result = '';
       for (let i = 0; i < 12; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -113,15 +148,8 @@
     const savedCode = localStorage.getItem('trac_qr_code');
     const lastCode = localStorage.getItem('last_qr_code');
 
-    function enableExitWarning() {
-      window.addEventListener('beforeunload', function(e) {
-        e.preventDefault();
-        e.returnValue = true;
-      });
-    }
-
+    // Only one extra back press (2 total to leave)
     function addBackProtection() {
-      history.pushState({protected: true}, '', window.location.href);
       history.pushState({protected: true}, '', window.location.href);
     }
 
@@ -141,12 +169,11 @@
         downloadAndReveal(code);
       });
 
-      enableExitWarning();
       addBackProtection();
     }
 
     if (isValidSession && isValidAmount && plays > 0) {
-      const nonce = generateNonce(); // 12 chars — short & safe
+      const nonce = generateNonce();
       const payload = `${plays}|${machineId}|${nonce}`;
       const code = payload;
 
