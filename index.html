@@ -6,52 +6,51 @@
   <title>Pay-Point-Play | Success</title>
   <script src="https://unpkg.com/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
-    body { background: black; color: #FFFF00; font-family: Arial, sans-serif; text-align: center; padding: 40px; margin: 0; overflow-x: hidden; }
+    body { background: black; color: #FFFF00; font-family: Arial, sans-serif; text-align: center; padding: 40px; margin: 0; }
     
-    /* Foggy Overlay */
     #overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(12px); /* Frosty glass effect */
-      -webkit-backdrop-filter: blur(12px);
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 100;
-      cursor: pointer;
     }
+    
     #overlay-text {
       color: #FFFF00;
-      font-size: 2.2em;
+      font-size: 2em;
       font-weight: bold;
-      line-height: 1.4;
       padding: 20px;
     }
 
+    .spinner {
+      border: 4px solid rgba(255, 255, 0, 0.3);
+      border-top: 4px solid #FFFF00;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
     #instruction { font-size: 2em; font-weight: bold; margin-bottom: 20px; }
     .red { color: #FF0000; }
-
-    .qr-wrapper { 
-      background: white; 
-      padding: 30px; 
-      display: inline-block; 
-      border-radius: 20px; 
-      margin: 20px 0;
-    }
-
+    .qr-wrapper { background: white; padding: 30px; display: inline-block; border-radius: 20px; margin: 20px 0; }
     #code { font-size: 1.8em; font-weight: bold; margin-top: 20px; letter-spacing: 2px; }
-    
-    @media (max-width: 600px) {
-      #overlay-text { font-size: 1.8em; }
-      #instruction { font-size: 1.5em; }
-    }
   </style>
 </head>
 <body>
 
   <div id="overlay">
-    <div id="overlay-text">PAYMENT VERIFIED!<br><br>Click anywhere to download<br>and reveal your QR code.</div>
+    <div id="overlay-text">
+      <div class="spinner"></div>
+      SECURELY GENERATING QR...
+    </div>
   </div>
 
   <div id="instruction">
@@ -59,97 +58,74 @@
   </div>
 
   <div class="qr-wrapper" id="qrContainer"></div>
-  <div id="code">Verifying with Server...</div>
+  <div id="code">Searching logs...</div>
 
   <script>
-    // 1. UPDATE THIS URL with your latest Apps Script Deployment URL
+    // --- UPDATE YOUR URL HERE ---
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxwI-ShJVLFrlguYJzS-iKTUNTzxfz6XXPndZ49igqfwd7n_Kmo9xfcOI4Afi0gV1IE/exec"; 
 
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get('session_id');
 
-    async function fetchAndShowQR() {
+    async function startFlow() {
       if (!sessionId) {
         document.getElementById('code').textContent = "Error: No Session ID";
         return;
       }
 
       try {
-        // Fetch from Google Apps Script with Redirect Following
         const response = await fetch(`${APPS_SCRIPT_URL}?session_id=${sessionId}`, {
           method: 'GET',
           redirect: 'follow'
         });
-
         const data = await response.json();
 
         if (data.qr_code) {
-          setupDisplay(data.qr_code, data.plays);
+          // Display the QR data
+          document.getElementById('code').textContent = data.qr_code;
+          new QRCode(document.getElementById("qrContainer"), {
+            text: data.qr_code,
+            width: 280,
+            height: 280,
+            correctLevel: QRCode.CorrectLevel.H
+          });
+
+          // Wait 1.5 seconds for visual confirmation, then reveal and download
+          setTimeout(() => {
+            triggerDownload(data.qr_code, data.plays);
+            document.getElementById('overlay').remove();
+          }, 1500);
+
         } else {
-          document.getElementById('code').textContent = "Payment Not Found";
-          // If not found, we remove overlay so they can see the error
-          document.getElementById('overlay').style.display = 'none';
+          document.getElementById('overlay-text').textContent = "PAYMENT NOT LOGGED YET. PLEASE REFRESH IN 5 SECONDS.";
         }
       } catch (err) {
-        console.error("Fetch error:", err);
-        document.getElementById('code').textContent = "Connection Error. Please Refresh.";
+        document.getElementById('overlay-text').textContent = "CONNECTION ERROR. REFRESH PAGE.";
       }
     }
 
-    function setupDisplay(qrText, plays) {
-      // Set the text below the QR
-      document.getElementById('code').textContent = qrText;
-      
-      // Generate the QR Code visually
-      new QRCode(document.getElementById("qrContainer"), {
-        text: qrText,
-        width: 280,
-        height: 280,
-        colorDark: "#000000",
-        colorLight: "#FFFFFF",
-        correctLevel: QRCode.CorrectLevel.H
-      });
-
-      // Now that everything is ready, enable the click-to-reveal
-      document.getElementById('overlay').addEventListener('click', function() {
-        downloadImage(qrText, plays);
-        this.remove(); // Removes the foggy overlay
-      });
-    }
-
-    function downloadImage(text, plays) {
+    function triggerDownload(text, plays) {
       const canvas = document.createElement('canvas');
       canvas.width = 440;
       canvas.height = 520;
       const ctx = canvas.getContext('2d');
-      
-      // Draw white background
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Get the generated QR canvas
       const qrCanvas = document.querySelector('#qrContainer canvas');
-      if (qrCanvas) {
-        ctx.drawImage(qrCanvas, 40, 40, 360, 360);
-      }
-      
-      // Draw text label
+      if (qrCanvas) ctx.drawImage(qrCanvas, 40, 40, 360, 360);
       ctx.fillStyle = 'black';
       ctx.font = 'bold 30px Arial';
       ctx.textAlign = 'center';
       ctx.fillText(text, canvas.width / 2, 460);
       
-      // Create download link
       const url = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = url;
-      const randomID = Math.random().toString(36).substring(2, 6).toUpperCase();
-      a.download = `PayPointPlay-${plays}Plays-${randomID}.png`;
+      a.download = `PayPointPlay-${plays}Plays.png`;
       a.click();
     }
 
-    // Start the process
-    fetchAndShowQR();
+    startFlow();
   </script>
 </body>
 </html>
