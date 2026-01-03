@@ -3,17 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Code</title>
+  <title>QR Code Success</title>
   <script src="https://unpkg.com/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
-    body { background: black; color: #FFFF00; font-family: Arial; text-align: center; padding: 40px; margin: 0; position: relative; }
-    .qr-wrapper { background: white; padding: 40px; display: inline-block; border-radius: 20px; margin: 30px 0; }
+    body { background: black; color: #FFFF00; font-family: Arial; text-align: center; padding: 40px; margin: 0; }
+    .qr-wrapper { background: white; padding: 40px; display: inline-block; border-radius: 20px; margin: 30px 0; position: relative; }
     #code { font-size: 2em; font-weight: bold; margin: 30px 0; }
-   
+    
+    /* Opaque/Foggy Overlay */
     #overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.85); /* Dark foggy background */
+      backdrop-filter: blur(8px);      /* The "Foggy" effect */
       display: flex;
       align-items: center;
       justify-content: center;
@@ -25,157 +27,104 @@
       font-size: 2.5em;
       font-weight: bold;
       text-align: center;
-      padding: 20px;
     }
-    @media (max-width: 600px) {
-      #overlay-text { font-size: 2em; }
-    }
-
-    /* New instruction text */
-    #instruction {
-      font-size: 2.2em;
-      font-weight: bold;
-      margin: 20px 0;
-    }
-    #instruction .red {
-      color: #FF0000;
-    }
-    @media (max-width: 600px) {
-      #instruction { font-size: 1.8em; }
-    }
+    #instruction { font-size: 2.2em; font-weight: bold; margin: 20px 0; }
+    .red { color: #FF0000; }
   </style>
 </head>
 <body>
+
   <div id="overlay">
     <div id="overlay-text">Click anywhere to download<br>and reveal your QR code!</div>
   </div>
 
-  <!-- New instruction text -->
   <div id="instruction">
     NOW POINT SCREEN UP TO <span class="red">RED</span> TARGET!
   </div>
 
   <div class="qr-wrapper" id="qrContainer"></div>
-  <div id="code"></div>
-  <button id="downloadBtn" style="display:none;">Download QR to Phone</button>
+  <div id="code">Loading Security Verification...</div>
 
   <script>
-    const SECRET = "TracReader2025!SuperSecretKey#987";
-
-    async function generateHMAC(message) {
-      const enc = new TextEncoder();
-      const key = await crypto.subtle.importKey("raw", enc.encode(SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-      const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
-      return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
-    }
-
-    async function downloadAndReveal(code) {
-      const canvas = document.createElement('canvas');
-      canvas.width = 440;
-      canvas.height = 520;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      const qrCanvas = document.querySelector('#qrContainer canvas');
-      ctx.drawImage(qrCanvas, 40, 40, 360, 360);
-      ctx.fillStyle = 'black';
-      ctx.font = 'bold 30px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(code, canvas.width / 2, 460);
-      const url = canvas.toDataURL('image/png');
-      const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-      // Updated filename: Pay-Point-Play-QR-xPlays-xxxx
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Pay-Point-Play-QR-${plays}Plays-${randomSuffix}.png`;
-      a.click();
-
-      localStorage.removeItem('trac_qr_code');
-      localStorage.setItem('last_qr_code', code);
-
-      document.getElementById('overlay').remove();
-    }
+    // 1. PASTE YOUR NEW APPS SCRIPT URL HERE
+    const APPS_SCRIPT_URL = "YOUR_NEW_DEPLOYMENT_URL"; 
 
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get('session_id');
-    const amountStr = urlParams.get('amount');
 
-    if (sessionId || amountStr) {
-      const cleanUrl = window.location.pathname +
-        "?status=success" +
-        "&ref=" + Math.random().toString(36).substring(2, 10) +
-        "&payment_id=" + Date.now() + Math.floor(Math.random() * 10000) +
-        "&token=" + Math.random().toString(36).substring(2, 8);
-      window.history.replaceState({}, document.title, cleanUrl);
+    async function fetchAndShowQR() {
+      if (!sessionId) {
+        document.getElementById('code').textContent = "Invalid Session";
+        return;
+      }
+
+      try {
+        // Fetch the PRE-GENERATED code from your secure server
+        const response = await fetch(`${APPS_SCRIPT_URL}?session_id=${sessionId}`);
+        const data = await response.json();
+
+        if (data.qr_code) {
+          displayQR(data.qr_code, data.plays);
+        } else {
+          document.getElementById('code').textContent = "Payment Not Found";
+        }
+      } catch (err) {
+        document.getElementById('code').textContent = "Connection Error";
+      }
     }
 
-    const validAmounts = ['1.39', '3.39', '5.39', '10.39'];
-    const playsMap = { '1.39': 1, '3.39': 3, '5.39': 5, '10.39': 10 };
-    const machineId = localStorage.getItem('current_machine_id') || '0243';
-
-    const isValidSession = sessionId && (sessionId.startsWith('cs_test_') || sessionId.startsWith('cs_live_'));
-    const isValidAmount = validAmounts.includes(amountStr);
-    const plays = playsMap[amountStr] || 0;
-
-    const savedCode = localStorage.getItem('trac_qr_code');
-    const lastCode = localStorage.getItem('last_qr_code');
-
-    function enableExitWarning() {
-      window.addEventListener('beforeunload', function(e) {
-        e.preventDefault();
-        e.returnValue = true;
-      });
-    }
-
-    function addBackProtection() {
-      history.pushState({protected: true}, '', window.location.href);
-      history.pushState({protected: true}, '', window.location.href);
-    }
-
-    function displayQR(code) {
+    function displayQR(code, plays) {
       document.getElementById('code').textContent = code;
-      document.getElementById("qrContainer").innerHTML = "";
-      new QRCode(document.getElementById("qrContainer"), {
+      
+      // Generate QR visually
+      const qrObj = new QRCode(document.getElementById("qrContainer"), {
         text: code,
-        width: 200,
-        height: 200,
+        width: 300,
+        height: 300,
         colorDark: "#000000",
         colorLight: "#FFFFFF",
         correctLevel: QRCode.CorrectLevel.H
       });
 
+      // Handle the Click/Download
       document.getElementById('overlay').addEventListener('click', function() {
-        downloadAndReveal(code);
+        downloadAndReveal(code, plays);
       });
-
-      enableExitWarning();
-      addBackProtection();
     }
 
-    if (isValidSession && isValidAmount && plays > 0) {
-      generateHMAC(sessionId).then(sessionHash => {
-        const randomId = sessionHash.substring(0, 4).toUpperCase();
-        const dataToSign = `${plays}|${machineId}${randomId}`;
+    function downloadAndReveal(code, plays) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 440;
+      canvas.height = 520;
+      const ctx = canvas.getContext('2d');
+      
+      // Draw background
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw QR from the container
+      const qrCanvas = document.querySelector('#qrContainer canvas');
+      ctx.drawImage(qrCanvas, 40, 40, 360, 360);
+      
+      // Draw Label
+      ctx.fillStyle = 'black';
+      ctx.font = 'bold 30px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(code, canvas.width / 2, 460);
+      
+      // Trigger Download
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+      a.download = `Pay-Point-Play-QR-${plays}Plays-${randomSuffix}.png`;
+      a.click();
 
-        generateHMAC(dataToSign).then(hash => {
-          const shortSig = hash.substring(0, 4).toUpperCase();
-          const code = plays === 10 ? `10-${machineId}${randomId}${shortSig}` : `${plays}-${machineId}${randomId}${shortSig}`;
-
-          localStorage.setItem('trac_qr_code', code);
-          displayQR(code);
-        });
-      });
-
-    } else {
-      const codeToShow = savedCode || lastCode;
-      if (codeToShow) {
-        displayQR(codeToShow);
-      } else {
-        document.getElementById("qrContainer").innerHTML = '';
-        document.getElementById('code').textContent = 'Invalid payment';
-        document.getElementById('overlay').remove();
-      }
+      // Remove the Foggy Overlay
+      document.getElementById('overlay').remove();
     }
+
+    fetchAndShowQR();
   </script>
 </body>
 </html>
