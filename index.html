@@ -7,8 +7,24 @@
   <script src="https://unpkg.com/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
     body { background: black; color: #FFFF00; font-family: Arial, sans-serif; text-align: center; padding: 40px; margin: 0; }
-    #overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 100; }
-    #overlay-text { font-size: 2em; font-weight: bold; }
+    
+    /* The Foggy Overlay - Starts hidden */
+    #overlay { 
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+      background: rgba(0,0,0,0.8); backdrop-filter: blur(12px); 
+      -webkit-backdrop-filter: blur(12px);
+      display: none; /* Only shows when data is ready */
+      align-items: center; justify-content: center; 
+      z-index: 100; cursor: pointer;
+    }
+    
+    #overlay-text { font-size: 2em; font-weight: bold; line-height: 1.4; }
+
+    /* The Loading Screen */
+    #loading-screen { margin-top: 100px; }
+    .spinner { border: 4px solid #333; border-top: 4px solid #FFFF00; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
     #instruction { font-size: 2em; font-weight: bold; margin-bottom: 20px; }
     .red { color: #FF0000; }
     .qr-wrapper { background: white; padding: 30px; display: inline-block; border-radius: 20px; margin: 20px 0; }
@@ -18,21 +34,27 @@
 <body>
 
   <div id="overlay">
-    <div id="overlay-text">VERIFYING PAYMENT...</div>
+    <div id="overlay-text">PAYMENT VERIFIED!<br><br>CLICK ANYWHERE TO<br>REVEAL & DOWNLOAD</div>
   </div>
 
-  <div id="instruction">POINT SCREEN TO <span class="red">RED</span> TARGET!</div>
-  <div class="qr-wrapper" id="qrContainer"></div>
-  <div id="code">Searching...</div>
+  <div id="loading-screen">
+    <div class="spinner"></div>
+    <div style="font-size: 1.8em; font-weight: bold;">VERIFYING PAYMENT...</div>
+  </div>
+
+  <div id="main-content" style="visibility: hidden;">
+    <div id="instruction">POINT SCREEN TO <span class="red">RED</span> TARGET!</div>
+    <div class="qr-wrapper" id="qrContainer"></div>
+    <div id="code">Searching...</div>
+  </div>
 
   <script>
-    // 1. PASTE YOUR URL HERE
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxwI-ShJVLFrlguYJzS-iKTUNTzxfz6XXPndZ49igqfwd7n_Kmo9xfcOI4Afi0gV1IE/exec"; 
 
     const urlParams = new URLSearchParams(window.location.search);
     let sessionId = urlParams.get('session_id');
 
-    // Handle LocalStorage for "Lost QR" button
+    // Persistence: Save or Retrieve the Session ID
     if (sessionId) {
       localStorage.setItem('ppp_last_session', sessionId);
     } else {
@@ -41,8 +63,7 @@
 
     async function startFlow() {
       if (!sessionId) {
-        document.getElementById('code').textContent = "No recent purchase found.";
-        document.getElementById('overlay-text').textContent = "PLEASE PAY FIRST";
+        document.getElementById('loading-screen').innerHTML = "<div style='font-size:1.8em; font-weight:bold;'>NO RECENT PURCHASE.<br>PLEASE PAY FIRST!</div>";
         return;
       }
 
@@ -54,6 +75,7 @@
         const data = await response.json();
 
         if (data.qr_code) {
+          // 1. Prepare QR Code in the background
           document.getElementById('code').textContent = data.qr_code;
           new QRCode(document.getElementById("qrContainer"), {
             text: data.qr_code,
@@ -62,17 +84,22 @@
             correctLevel: QRCode.CorrectLevel.H
           });
 
-          // Wait 1.5s then Auto-Download and Remove Overlay
-          setTimeout(() => {
+          // 2. Hide Loading, show main content and the foggy overlay
+          document.getElementById('loading-screen').style.display = 'none';
+          document.getElementById('main-content').style.visibility = 'visible';
+          document.getElementById('overlay').style.display = 'flex';
+
+          // 3. Set up the Manual Click Listener
+          document.getElementById('overlay').onclick = function() {
             triggerDownload(data.qr_code, data.plays);
-            document.getElementById('overlay').remove();
-          }, 1500);
+            this.remove(); // Reveal the QR
+          };
 
         } else {
-          document.getElementById('overlay-text').textContent = "NOT FOUND. REFRESH IN 5 SECONDS.";
+          document.getElementById('loading-screen').innerHTML = "<div style='font-size:1.8em; font-weight:bold;'>STILL PROCESSING...<br>REFRESH IN 5 SECONDS.</div>";
         }
       } catch (err) {
-        document.getElementById('overlay-text').textContent = "CONNECTION ERROR. REFRESH PAGE.";
+        document.getElementById('loading-screen').innerHTML = "<div style='font-size:1.8em; font-weight:bold;'>CONNECTION ERROR.<br>PLEASE REFRESH.</div>";
       }
     }
 
@@ -89,7 +116,6 @@
       const url = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = url;
-      // Add random 4 digit suffix for unique filename
       const randomSuffix = Math.floor(1000 + Math.random() * 9000);
       a.download = `PayPointPlay-${plays}Plays-${randomSuffix}.png`;
       a.click();
