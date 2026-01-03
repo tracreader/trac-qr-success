@@ -8,20 +8,17 @@
   <style>
     body { background: black; color: #FFFF00; font-family: Arial, sans-serif; text-align: center; padding: 40px; margin: 0; }
     
-    /* The Foggy Overlay - Starts hidden */
     #overlay { 
       position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
       background: rgba(0,0,0,0.8); backdrop-filter: blur(12px); 
       -webkit-backdrop-filter: blur(12px);
-      display: none; /* Only shows when data is ready */
-      align-items: center; justify-content: center; 
+      display: none; align-items: center; justify-content: center; 
       z-index: 100; cursor: pointer;
     }
     
     #overlay-text { font-size: 2em; font-weight: bold; line-height: 1.4; }
 
-    /* The Loading Screen */
-    #loading-screen { margin-top: 100px; }
+    #loading-screen { margin-top: 100px; display: none; }
     .spinner { border: 4px solid #333; border-top: 4px solid #FFFF00; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
@@ -54,7 +51,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     let sessionId = urlParams.get('session_id');
 
-    // Persistence: Save or Retrieve the Session ID
+    // Persistence: Save session for "Lost QR"
     if (sessionId) {
       localStorage.setItem('ppp_last_session', sessionId);
     } else {
@@ -63,8 +60,17 @@
 
     async function startFlow() {
       if (!sessionId) {
+        document.getElementById('loading-screen').style.display = 'block';
         document.getElementById('loading-screen').innerHTML = "<div style='font-size:1.8em; font-weight:bold;'>NO RECENT PURCHASE.<br>PLEASE PAY FIRST!</div>";
         return;
+      }
+
+      // Check if we already did the download for this specific session
+      const alreadyDone = sessionStorage.getItem('ppp_done_' + sessionId);
+
+      // Only show loading screen if it's the first time
+      if (!alreadyDone) {
+        document.getElementById('loading-screen').style.display = 'block';
       }
 
       try {
@@ -75,31 +81,33 @@
         const data = await response.json();
 
         if (data.qr_code) {
-          // 1. Prepare QR Code in the background
           document.getElementById('code').textContent = data.qr_code;
           new QRCode(document.getElementById("qrContainer"), {
-            text: data.qr_code,
-            width: 280,
-            height: 280,
-            correctLevel: QRCode.CorrectLevel.H
+            text: data.qr_code, width: 280, height: 280, correctLevel: QRCode.CorrectLevel.H
           });
 
-          // 2. Hide Loading, show main content and the foggy overlay
           document.getElementById('loading-screen').style.display = 'none';
           document.getElementById('main-content').style.visibility = 'visible';
-          document.getElementById('overlay').style.display = 'flex';
 
-          // 3. Set up the Manual Click Listener
-          document.getElementById('overlay').onclick = function() {
-            triggerDownload(data.qr_code, data.plays);
-            this.remove(); // Reveal the QR
-          };
+          // --- THE SMART PART ---
+          if (!alreadyDone) {
+            // First time: Show the foggy overlay
+            document.getElementById('overlay').style.display = 'flex';
+            document.getElementById('overlay').onclick = function() {
+              triggerDownload(data.qr_code, data.plays);
+              sessionStorage.setItem('ppp_done_' + sessionId, 'true'); // Mark as finished
+              this.remove(); 
+            };
+          } else {
+            // Refresh/Return: No overlay, no auto-download, just show the code
+            console.log("Welcome back. QR code is ready.");
+          }
 
         } else {
-          document.getElementById('loading-screen').innerHTML = "<div style='font-size:1.8em; font-weight:bold;'>STILL PROCESSING...<br>REFRESH IN 5 SECONDS.</div>";
+          document.getElementById('loading-screen').innerHTML = "STILL PROCESSING...";
         }
       } catch (err) {
-        document.getElementById('loading-screen').innerHTML = "<div style='font-size:1.8em; font-weight:bold;'>CONNECTION ERROR.<br>PLEASE REFRESH.</div>";
+        document.getElementById('loading-screen').innerHTML = "CONNECTION ERROR.";
       }
     }
 
