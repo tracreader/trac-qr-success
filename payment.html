@@ -6,90 +6,32 @@
   <title>Pay Point Play</title>
   <style>
     body { background: black; color: #FFFF00; font-family: Arial, sans-serif; text-align: center; padding: 20px; margin: 0; }
-    
-    h1 { 
-      font-size: 10vw; 
-      margin: 20px 0; 
-      font-weight: 900; 
-      white-space: nowrap;
-    }
+    h1 { font-size: 10vw; margin: 20px 0; font-weight: 900; white-space: nowrap; }
 
-    #machine-info { margin-bottom: 25px; display: inline-block; }
-    /* Hand-tuned font size to align margins */
-    .label-text { 
-        font-size: 2.3em; 
-        font-weight: 900; 
-        color: #FFFFFF; 
-        display: block; 
-        letter-spacing: -1px;
-    }
-    .id-text { 
-        font-size: 2.5em; 
-        font-weight: 900; 
-        color: #FFFF00; 
-        display: block;
-        margin-top: -5px;
-    }
+    #machine-info { margin-bottom: 25px; display: inline-block; text-align: left; }
+    .label-text { font-size: 2.32em; font-weight: 900; color: #FFFFFF; display: block; line-height: 0.9; }
+    .id-text { font-size: 2.5em; font-weight: 900; color: #FFFF00; display: block; }
 
-    #no-machine { font-size: 1.8em; font-weight: bold; margin: 40px 0; color: #FF0000; }
-
-    #selection-header { margin: 25px 0 15px 0; display: inline-block; }
-    /* Hand-tuned font size to align margins */
-    h2 { 
-        font-size: 2.55em; 
-        margin: 0; 
-        font-weight: 900; 
-        color: #FFFF00; 
-        display: block;
-        letter-spacing: -1px;
-    }
-    .fee { 
-        font-size: 1.25em; 
-        color: #FFFF99; 
-        font-weight: bold; 
-        display: block;
-    }
+    #selection-header { margin: 25px 0 15px 0; display: inline-block; text-align: left; }
+    h2 { font-size: 2.58em; margin: 0; font-weight: 900; color: #FFFF00; display: block; line-height: 0.9; }
+    .fee { font-size: 1.25em; color: #FFFF99; font-weight: bold; display: block; text-align: center; }
 
     .buttons { display: flex; flex-direction: column; align-items: center; }
-    
     .buy-btn, .lost-btn { 
-      display: block; 
-      margin: 10px 0; 
-      padding: 22px; 
-      background: #FFFF00; 
-      color: black; 
-      font-size: 2em; 
-      font-weight: 900; 
-      text-transform: uppercase; 
-      text-decoration: none; 
-      border-radius: 15px; 
-      width: 90%; 
-      max-width: 500px; 
-      box-sizing: border-box;
+      display: block; margin: 10px 0; padding: 22px; background: #FFFF00; color: black; 
+      font-size: 2em; font-weight: 900; text-transform: uppercase; text-decoration: none; 
+      border-radius: 15px; width: 90%; max-width: 500px; box-sizing: border-box;
     }
-    
-    .buy-btn.disabled { background: #444; color: #777; pointer-events: none; }
-    
-    .lost-btn { 
-      background: #222; 
-      color: #FFFF00; 
-      border: 4px solid #FFFF00; 
-      margin-top: 30px;
-    }
-
+    .lost-btn { background: #222; color: #FFFF00; border: 4px solid #FFFF00; margin-top: 30px; }
     @media (min-width: 600px) { h1 { font-size: 3.5em; } }
   </style>
 </head>
 <body>
-
   <h1>PAY! POINT! PLAY!</h1>
-
   <div id="machine-info">
     <span class="label-text">ONLY WORKS ON</span>
     <span class="id-text">MACHINE: <span id="machine-id">...</span></span>
   </div>
-
-  <div id="no-machine" style="display:none;">PLEASE SCAN MACHINE<br>QR CODE TO PLAY!</div>
 
   <div id="selection-header">
     <h2>SELECT PLAY(S):</h2>
@@ -101,7 +43,6 @@
     <a id="btn3" class="buy-btn" href="https://buy.stripe.com/test_14A8wH6e2a4r9o92vUfMA03">3 PLAYS ($3.39)</a>
     <a id="btn5" class="buy-btn" href="https://buy.stripe.com/test_6oUeV5aui1xV0RD1rQfMA00">5 PLAYS ($5.39)</a>
     <a id="btn10" class="buy-btn" href="https://buy.stripe.com/test_28EbITbym0tR2ZL7QefMA04">10 PLAYS ($10.39)</a>
-    
     <a id="lost-btn" class="lost-btn" href="https://tracreader.github.io/trac-qr-success/">LOST QR CODE? CLICK TO FETCH</a>
   </div>
 
@@ -111,39 +52,30 @@
     let realMachineId = 'unknown';
 
     if (obfuscatedMid) {
-      const hyphenIndex = obfuscatedMid.indexOf('-');
-      realMachineId = hyphenIndex > 0 ? obfuscatedMid.substring(0, hyphenIndex) : obfuscatedMid;
-      localStorage.setItem('current_machine_id', realMachineId);
+      realMachineId = obfuscatedMid.split('-')[0];
+      localStorage.setItem('ppp_current_mid', realMachineId);
     } else {
-      realMachineId = localStorage.getItem('current_machine_id') || 'unknown';
+      realMachineId = localStorage.getItem('ppp_current_mid') || 'unknown';
     }
 
     const machineSpan = document.getElementById('machine-id');
-    if (realMachineId === 'unknown') {
-      machineSpan.textContent = '---';
-      document.querySelectorAll('.buy-btn').forEach(btn => btn.classList.add('disabled'));
-      document.getElementById('no-machine').style.display = 'block';
-      document.getElementById('machine-info').style.display = 'none';
-      document.getElementById('selection-header').style.display = 'none';
-      document.getElementById('lost-btn').style.display = 'none';
-    } else {
+    if (realMachineId !== 'unknown') {
       machineSpan.textContent = realMachineId;
       document.querySelectorAll('.buy-btn').forEach(btn => {
         const url = new URL(btn.href);
         url.searchParams.set('client_reference_id', realMachineId);
         btn.href = url.toString();
         
-        // Safety Net: Save the machine ID when a button is clicked
+        // THE HANDSHAKE: Save memory before leaving for Stripe
         btn.onclick = function() {
-            localStorage.setItem('ppp_attempted_machine', realMachineId);
-            localStorage.setItem('ppp_attempted_time', Date.now());
+          localStorage.setItem('ppp_active_machine', realMachineId);
+          localStorage.setItem('ppp_timestamp', Date.now());
         };
       });
     }
 
     if (obfuscatedMid) {
-      const dummyUrl = window.location.pathname + "?v=" + Math.random().toString(36).substring(2, 7);
-      window.history.replaceState({}, document.title, dummyUrl);
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   </script>
 </body>
