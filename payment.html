@@ -5,134 +5,120 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pay Point Play</title>
   <style>
-    body { background: black; color: #FFFF00; font-family: Arial, sans-serif; text-align: center; padding: 40px; margin: 0; }
-    h1 { 
-      font-size: 3.2em; 
-      margin: 20px 0; 
-      white-space: nowrap; /* Forces one line */
-    }
-    h2 { 
-      font-size: 2em; 
-      margin: 20px 0; 
-      color: #FFFF00; 
-    }
-    .fee { 
-      font-size: 1.2em; 
-      margin: 10px 0 30px 0; 
-      color: #FFFF99; 
-    }
+    body { background: black; color: #FFFF00; font-family: Arial, sans-serif; text-align: center; padding: 20px; margin: 0; }
+    
+    h1 { font-size: 3.2em; margin: 20px 0; white-space: nowrap; }
+
+    /* Machine Info Styling - Bigger and Bolder */
     #machine-info { 
-      font-size: 1.8em; 
-      margin: 30px 0; 
+      margin: 20px 0; 
       color: #FFFFFF; 
-      font-weight: bold; 
     }
-    #machine-info .big { 
-      font-size: 1.4em; 
-      font-weight: bolder; 
-    }
-    #no-machine { 
-      font-size: 2.2em; 
-      font-weight: bold; 
-      margin: 60px 0; 
-      color: #FFFF00; 
-    }
-    .buttons { margin: 40px 0; }
+    .label-text { font-size: 1.5em; font-weight: bold; color: #FFFFFF; }
+    .id-text { font-size: 3.5em; font-weight: 900; color: #FFFF00; display: block; margin-top: 5px; }
+
+    #no-machine { font-size: 2.2em; font-weight: bold; margin: 60px 0; color: #FFFF00; }
+
+    /* Selection Header Styling */
+    h2 { font-size: 2em; margin: 10px 0 5px 0; color: #FFFF00; }
+    .fee { font-size: 1.2em; margin-bottom: 25px; color: #FFFF99; font-weight: bold; }
+
+    .buttons { margin-bottom: 40px; }
+    
     .buy-btn { 
       display: block; 
-      margin: 20px auto; 
-      padding: 30px; 
+      margin: 15px auto; 
+      padding: 25px; 
       background: #FFFF00; 
       color: black; 
-      font-size: 2em; 
-      font-weight: bold; /* Bold text */
-      text-transform: uppercase; /* All uppercase */
+      font-size: 2.2em; 
+      font-weight: 900; 
+      text-transform: uppercase; 
       text-decoration: none; 
       border-radius: 15px; 
-      width: 80%; 
+      width: 90%; 
       max-width: 600px; 
+      box-shadow: 0 4px 15px rgba(255, 255, 0, 0.3);
     }
-    .buy-btn.disabled { 
-      background: #666666; 
-      color: #999999; 
-      pointer-events: none; 
-    }
+
+    .buy-btn.disabled { background: #444; color: #777; pointer-events: none; box-shadow: none; }
+
     .lost-btn { 
       display: block; 
       margin: 40px auto; 
       padding: 20px; 
-      background: #333333; 
+      background: #222; 
       color: #FFFF00; 
-      font-size: 1.8em; 
+      font-size: 1.6em; 
       text-decoration: none; 
-      border-radius: 15px; 
+      border-radius: 12px; 
       width: 80%; 
-      max-width: 600px; 
+      max-width: 500px; 
       border: 2px solid #FFFF00; 
     }
+
     @media (max-width: 600px) {
-      h1 { font-size: 2.6em; }
-      h2 { font-size: 1.8em; }
-      .fee { font-size: 1em; }
-      #machine-info { font-size: 1.6em; }
-      #machine-info .big { font-size: 1.2em; }
-      #no-machine { font-size: 1.8em; }
-      .buy-btn { font-size: 1.8em; padding: 25px; }
-      .lost-btn { font-size: 1.6em; }
+      h1 { font-size: 2.4em; }
+      .label-text { font-size: 1.2em; }
+      .id-text { font-size: 2.8em; }
+      h2 { font-size: 1.6em; }
+      .buy-btn { font-size: 1.8em; padding: 20px; }
     }
   </style>
 </head>
 <body>
+
   <h1>PAY! POINT! PLAY!</h1>
-  <h2>SELECT YOUR PLAY(S)</h2>
-  <div class="fee">+$0.39 MOBILE PROCESSING FEE</div>
 
   <div id="machine-info">
-    ONLY WORKS ON<br>
-    <span class="big">MACHINE: <span id="machine-id">Loading...</span></span>
+    <span class="label-text">ONLY WORKS ON</span>
+    <span class="id-text" id="machine-id">Loading...</span>
   </div>
 
-  <div id="no-machine" style="display:none;">SCAN QR CODE TO PLAY!</div>
+  <div id="no-machine" style="display:none;">PLEASE SCAN MACHINE<br>QR CODE TO PLAY!</div>
+
+  <div id="selection-header">
+    <h2>SELECT YOUR PLAY(S)</h2>
+    <div class="fee">+$0.39 MOBILE PROCESSING FEE</div>
+  </div>
 
   <div class="buttons">
-    <a id="btn1" class="buy-btn" href="https://buy.stripe.com/test_9B63cn7i6b8vbwh7QefMA01">BUY 1 PLAY ($1.39)</a>
-    <a id="btn3" class="buy-btn" href="https://buy.stripe.com/test_14A8wH6e2a4r9o92vUfMA03">BUY 3 PLAYS ($3.39)</a>
-    <a id="btn5" class="buy-btn" href="https://buy.stripe.com/test_6oUeV5aui1xV0RD1rQfMA00">BUY 5 PLAYS ($5.39)</a>
-    <a id="btn10" class="buy-btn" href="https://buy.stripe.com/test_28EbITbym0tR2ZL7QefMA04">BUY 10 PLAYS ($10.39)</a>
+    <a id="btn1" class="buy-btn" href="https://buy.stripe.com/test_9B63cn7i6b8vbwh7QefMA01">1 PLAY ($1.39)</a>
+    <a id="btn3" class="buy-btn" href="https://buy.stripe.com/test_14A8wH6e2a4r9o92vUfMA03">3 PLAYS ($3.39)</a>
+    <a id="btn5" class="buy-btn" href="https://buy.stripe.com/test_6oUeV5aui1xV0RD1rQfMA00">5 PLAYS ($5.39)</a>
+    <a id="btn10" class="buy-btn" href="https://buy.stripe.com/test_28EbITbym0tR2ZL7QefMA04">10 PLAYS ($10.39)</a>
   </div>
 
-  <!-- Lost QR Code button -->
-  <a id="lost-btn" class="lost-btn" href="https://tracreader.github.io/trac-qr-success/">Lost QR Code? Click here to fetch it</a>
+  <a id="lost-btn" class="lost-btn" href="https://tracreader.github.io/trac-qr-success/">Lost QR Code? Click to fetch it</a>
 
   <script>
-    // Always read mid from URL (if present) — allows switching machines
     const urlParams = new URLSearchParams(window.location.search);
     const obfuscatedMid = urlParams.get('mid');
-
     let realMachineId = 'unknown';
 
+    // Logic: URL overrides LocalStorage (allows switching machines)
     if (obfuscatedMid) {
-      const lastDashIndex = obfuscatedMid.lastIndexOf('-');
-      realMachineId = lastDashIndex > 0 ? obfuscatedMid.substring(0, lastDashIndex) : obfuscatedMid;
+      const hyphenIndex = obfuscatedMid.indexOf('-');
+      // Take first 4 characters before the hyphen
+      realMachineId = hyphenIndex > 0 ? obfuscatedMid.substring(0, hyphenIndex) : obfuscatedMid;
       localStorage.setItem('current_machine_id', realMachineId);
     } else {
       realMachineId = localStorage.getItem('current_machine_id') || 'unknown';
     }
 
-    // Display machine ID
     const machineSpan = document.getElementById('machine-id');
-    machineSpan.textContent = realMachineId === 'unknown' ? 'Unknown' : realMachineId;
-
-    // If no valid machine ID — disable buttons and show message
+    
     if (realMachineId === 'unknown') {
-      document.querySelectorAll('.buy-btn').forEach(btn => {
-        btn.classList.add('disabled');
-      });
+      machineSpan.textContent = '---';
+      document.querySelectorAll('.buy-btn').forEach(btn => btn.classList.add('disabled'));
       document.getElementById('lost-btn').style.display = 'none';
       document.getElementById('no-machine').style.display = 'block';
       document.getElementById('machine-info').style.display = 'none';
+      document.getElementById('selection-header').style.display = 'none';
     } else {
-      // Update buttons with correct client_reference_id
+      machineSpan.textContent = realMachineId;
+      
+      // Inject the ID into the Stripe links
       document.querySelectorAll('.buy-btn').forEach(btn => {
         const url = new URL(btn.href);
         url.searchParams.set('client_reference_id', realMachineId);
@@ -140,13 +126,15 @@
       });
     }
 
-    // Clean URL with dummy variables
-    const cleanUrl = window.location.pathname + 
-      "?status=ready" +
-      "&ref=" + Math.random().toString(36).substring(2, 10) +
-      "&payment_id=" + Date.now() + Math.floor(Math.random() * 10000) +
-      "&token=" + Math.random().toString(36).substring(2, 8);
-    window.history.replaceState({}, document.title, cleanUrl);
+    // URL CLEANER: Immediately hide the 'mid' and show dummy variables
+    // This protects the Vendor ID and looks more professional
+    if (obfuscatedMid) {
+      const dummyUrl = window.location.pathname + 
+        "?session=" + Math.random().toString(36).substring(2, 12) +
+        "&secure=true" +
+        "&ref_auth=" + btoa(Date.now()).substring(0, 8);
+      window.history.replaceState({}, document.title, dummyUrl);
+    }
   </script>
 </body>
 </html>
