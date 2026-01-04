@@ -7,7 +7,6 @@
   <style>
     body { background: black; color: #FFFF00; font-family: Arial, sans-serif; text-align: center; padding: 20px; margin: 0; }
     
-    /* Responsive Header: Scales with screen width so it never cuts off */
     h1 { 
       font-size: 10vw; 
       margin: 20px 0; 
@@ -15,20 +14,31 @@
       white-space: nowrap;
     }
 
-    #machine-info { margin: 15px 0; line-height: 1.2; }
-    .label-text { font-size: 1.8em; font-weight: 900; color: #FFFFFF; display: block; }
-    .id-text { font-size: 2.5em; font-weight: 900; color: #FFFF00; display: block; }
+    /* Machine Info: Forces labels to match the width of the ID */
+    #machine-info { 
+      display: inline-flex; 
+      flex-direction: column; 
+      align-items: center; 
+      margin-bottom: 20px; 
+    }
+    .label-text { font-size: 1.4em; font-weight: 900; color: #FFFFFF; width: 100%; text-align: justify; text-align-last: justify; }
+    .id-text { font-size: 2.5em; font-weight: 900; color: #FFFF00; margin-top: 5px; }
 
     #no-machine { font-size: 1.8em; font-weight: bold; margin: 40px 0; color: #FF0000; }
 
-    /* Selection Header: Proportional and Bold */
-    #selection-header { margin: 25px 0 15px 0; }
-    h2 { font-size: 2.4em; margin: 0; font-weight: 900; color: #FFFF00; }
-    .fee { font-size: 1.4em; margin-top: 5px; color: #FFFF99; font-weight: bold; }
+    /* Selection Header: Aligns Play(s) with the Fee text */
+    #selection-header { 
+      display: inline-flex; 
+      flex-direction: column; 
+      align-items: center; 
+      margin: 25px 0 15px 0; 
+    }
+    h2 { font-size: 2.2em; margin: 0; font-weight: 900; color: #FFFF00; width: 100%; text-align: justify; text-align-last: justify; }
+    .fee { font-size: 1.25em; margin-top: 5px; color: #FFFF99; font-weight: bold; white-space: nowrap; }
 
     .buttons { display: flex; flex-direction: column; align-items: center; }
     
-    .buy-btn { 
+    .buy-btn, .lost-btn { 
       display: block; 
       margin: 10px 0; 
       padding: 22px; 
@@ -41,29 +51,20 @@
       border-radius: 15px; 
       width: 90%; 
       max-width: 500px; 
+      box-sizing: border-box;
     }
     
     .buy-btn.disabled { background: #444; color: #777; pointer-events: none; }
     
-    /* Matched width with the buy buttons */
+    /* Unique styling for Lost Button while maintaining identical width/shape */
     .lost-btn { 
-      display: block; 
-      margin: 30px auto; 
-      padding: 20px; 
       background: #222; 
       color: #FFFF00; 
-      font-size: 1.5em; 
-      text-decoration: none; 
-      border-radius: 15px; 
-      width: 90%; 
-      max-width: 500px; 
-      border: 3px solid #FFFF00; 
-      box-sizing: border-box; /* Ensures border doesn't add to width */
+      border: 4px solid #FFFF00; 
+      margin-top: 30px;
     }
 
-    @media (min-width: 600px) {
-      h1 { font-size: 3.5em; } /* Cap the size on tablets/desktops */
-    }
+    @media (min-width: 600px) { h1 { font-size: 3.5em; } }
   </style>
 </head>
 <body>
@@ -88,7 +89,7 @@
     <a id="btn5" class="buy-btn" href="https://buy.stripe.com/test_6oUeV5aui1xV0RD1rQfMA00">5 PLAYS ($5.39)</a>
     <a id="btn10" class="buy-btn" href="https://buy.stripe.com/test_28EbITbym0tR2ZL7QefMA04">10 PLAYS ($10.39)</a>
     
-    <a id="lost-btn" class="lost-btn" href="https://tracreader.github.io/trac-qr-success/">Lost QR Code? Click here</a>
+    <a id="lost-btn" class="lost-btn" href="https://tracreader.github.io/trac-qr-success/">LOST QR CODE? CLICK TO FETCH</a>
   </div>
 
   <script>
@@ -104,14 +105,16 @@
       realMachineId = localStorage.getItem('current_machine_id') || 'unknown';
     }
 
+    const machineSpan = document.getElementById('machine-id');
     if (realMachineId === 'unknown') {
-      document.getElementById('machine-id').textContent = '---';
+      machineSpan.textContent = '---';
       document.querySelectorAll('.buy-btn').forEach(btn => btn.classList.add('disabled'));
       document.getElementById('no-machine').style.display = 'block';
       document.getElementById('machine-info').style.display = 'none';
       document.getElementById('selection-header').style.display = 'none';
+      document.getElementById('lost-btn').style.display = 'none';
     } else {
-      document.getElementById('machine-id').textContent = realMachineId;
+      machineSpan.textContent = realMachineId;
       document.querySelectorAll('.buy-btn').forEach(btn => {
         const url = new URL(btn.href);
         url.searchParams.set('client_reference_id', realMachineId);
@@ -119,7 +122,6 @@
       });
     }
 
-    // Professional URL Masking
     if (obfuscatedMid) {
       const dummyUrl = window.location.pathname + "?v=" + Math.random().toString(36).substring(2, 7);
       window.history.replaceState({}, document.title, dummyUrl);
