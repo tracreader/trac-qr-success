@@ -6,79 +6,42 @@
   <title>Pay Point Play</title>
   <style>
     body { background: black; color: #FFFF00; font-family: Arial, sans-serif; text-align: center; padding: 20px; margin: 0; }
-    
-    h1 { font-size: 3.2em; margin: 20px 0; white-space: nowrap; }
+    h1 { font-size: 3em; margin: 15px 0; font-weight: 900; }
 
-    /* Machine Info Styling - Bigger and Bolder */
-    #machine-info { 
-      margin: 20px 0; 
-      color: #FFFFFF; 
-    }
-    .label-text { font-size: 1.5em; font-weight: bold; color: #FFFFFF; }
-    .id-text { font-size: 3.5em; font-weight: 900; color: #FFFF00; display: block; margin-top: 5px; }
+    /* Massive Machine ID Display */
+    #machine-info { margin: 10px 0 30px 0; }
+    .label-text { font-size: 2.2em; font-weight: 900; color: #FFFFFF; display: block; }
+    .id-text { font-size: 4.5em; font-weight: 900; color: #FFFF00; line-height: 1.1; }
 
-    #no-machine { font-size: 2.2em; font-weight: bold; margin: 60px 0; color: #FFFF00; }
+    #no-machine { font-size: 2em; font-weight: bold; margin: 40px 0; color: #FF0000; }
 
-    /* Selection Header Styling */
-    h2 { font-size: 2em; margin: 10px 0 5px 0; color: #FFFF00; }
-    .fee { font-size: 1.2em; margin-bottom: 25px; color: #FFFF99; font-weight: bold; }
+    /* Selection Header - Bold & Loud */
+    #selection-header { margin-top: 20px; }
+    h2 { font-size: 2.8em; margin: 0; font-weight: 900; color: #FFFF00; text-decoration: underline; }
+    .fee { font-size: 1.3em; margin: 10px 0 25px 0; color: #FFFF99; font-weight: bold; }
 
     .buttons { margin-bottom: 40px; }
-    
     .buy-btn { 
-      display: block; 
-      margin: 15px auto; 
-      padding: 25px; 
-      background: #FFFF00; 
-      color: black; 
-      font-size: 2.2em; 
-      font-weight: 900; 
-      text-transform: uppercase; 
-      text-decoration: none; 
-      border-radius: 15px; 
-      width: 90%; 
-      max-width: 600px; 
-      box-shadow: 0 4px 15px rgba(255, 255, 0, 0.3);
+      display: block; margin: 15px auto; padding: 25px; background: #FFFF00; color: black; 
+      font-size: 2.2em; font-weight: 900; text-transform: uppercase; text-decoration: none; 
+      border-radius: 15px; width: 92%; max-width: 600px; 
     }
-
-    .buy-btn.disabled { background: #444; color: #777; pointer-events: none; box-shadow: none; }
-
-    .lost-btn { 
-      display: block; 
-      margin: 40px auto; 
-      padding: 20px; 
-      background: #222; 
-      color: #FFFF00; 
-      font-size: 1.6em; 
-      text-decoration: none; 
-      border-radius: 12px; 
-      width: 80%; 
-      max-width: 500px; 
-      border: 2px solid #FFFF00; 
-    }
-
-    @media (max-width: 600px) {
-      h1 { font-size: 2.4em; }
-      .label-text { font-size: 1.2em; }
-      .id-text { font-size: 2.8em; }
-      h2 { font-size: 1.6em; }
-      .buy-btn { font-size: 1.8em; padding: 20px; }
-    }
+    .buy-btn.disabled { background: #444; color: #777; pointer-events: none; }
+    .lost-btn { display: block; margin: 40px auto; padding: 20px; background: #222; color: #FFFF00; font-size: 1.6em; text-decoration: none; border-radius: 12px; width: 85%; border: 2px solid #FFFF00; }
   </style>
 </head>
 <body>
-
   <h1>PAY! POINT! PLAY!</h1>
 
   <div id="machine-info">
     <span class="label-text">ONLY WORKS ON</span>
-    <span class="id-text" id="machine-id">Loading...</span>
+    <span class="id-text">MACHINE:<span id="machine-id">...</span></span>
   </div>
 
   <div id="no-machine" style="display:none;">PLEASE SCAN MACHINE<br>QR CODE TO PLAY!</div>
 
   <div id="selection-header">
-    <h2>SELECT YOUR PLAY(S)</h2>
+    <h2>SELECT PLAY(S):</h2>
     <div class="fee">+$0.39 MOBILE PROCESSING FEE</div>
   </div>
 
@@ -96,29 +59,23 @@
     const obfuscatedMid = urlParams.get('mid');
     let realMachineId = 'unknown';
 
-    // Logic: URL overrides LocalStorage (allows switching machines)
     if (obfuscatedMid) {
       const hyphenIndex = obfuscatedMid.indexOf('-');
-      // Take first 4 characters before the hyphen
       realMachineId = hyphenIndex > 0 ? obfuscatedMid.substring(0, hyphenIndex) : obfuscatedMid;
       localStorage.setItem('current_machine_id', realMachineId);
     } else {
       realMachineId = localStorage.getItem('current_machine_id') || 'unknown';
     }
 
-    const machineSpan = document.getElementById('machine-id');
-    
     if (realMachineId === 'unknown') {
-      machineSpan.textContent = '---';
+      document.getElementById('machine-id').textContent = '---';
       document.querySelectorAll('.buy-btn').forEach(btn => btn.classList.add('disabled'));
-      document.getElementById('lost-btn').style.display = 'none';
       document.getElementById('no-machine').style.display = 'block';
       document.getElementById('machine-info').style.display = 'none';
       document.getElementById('selection-header').style.display = 'none';
+      document.getElementById('lost-btn').style.display = 'none';
     } else {
-      machineSpan.textContent = realMachineId;
-      
-      // Inject the ID into the Stripe links
+      document.getElementById('machine-id').textContent = realMachineId;
       document.querySelectorAll('.buy-btn').forEach(btn => {
         const url = new URL(btn.href);
         url.searchParams.set('client_reference_id', realMachineId);
@@ -126,13 +83,8 @@
       });
     }
 
-    // URL CLEANER: Immediately hide the 'mid' and show dummy variables
-    // This protects the Vendor ID and looks more professional
     if (obfuscatedMid) {
-      const dummyUrl = window.location.pathname + 
-        "?session=" + Math.random().toString(36).substring(2, 12) +
-        "&secure=true" +
-        "&ref_auth=" + btoa(Date.now()).substring(0, 8);
+      const dummyUrl = window.location.pathname + "?session=" + Math.random().toString(36).substring(2, 10);
       window.history.replaceState({}, document.title, dummyUrl);
     }
   </script>
