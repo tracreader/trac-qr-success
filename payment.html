@@ -6,36 +6,72 @@
   <title>Pay Point Play</title>
   <style>
     body { background: black; color: #FFFF00; font-family: Arial, sans-serif; text-align: center; padding: 20px; margin: 0; }
-    h1 { font-size: 3em; margin: 15px 0; font-weight: 900; }
+    
+    /* Forces one line and scales down if screen is too small */
+    h1 { 
+      font-size: 2.8em; 
+      margin: 20px 0; 
+      font-weight: 900; 
+      white-space: nowrap; 
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
-    /* Massive Machine ID Display */
-    #machine-info { margin: 10px 0 30px 0; }
-    .label-text { font-size: 2.2em; font-weight: 900; color: #FFFFFF; display: block; }
-    .id-text { font-size: 4.5em; font-weight: 900; color: #FFFF00; line-height: 1.1; }
+    #machine-info { margin: 20px 0; }
+    .label-text { font-size: 1.4em; font-weight: bold; color: #FFFFFF; display: block; }
+    .id-text { font-size: 3em; font-weight: 900; color: #FFFF00; margin-top: 5px; display: block; }
 
-    #no-machine { font-size: 2em; font-weight: bold; margin: 40px 0; color: #FF0000; }
+    #no-machine { font-size: 1.8em; font-weight: bold; margin: 40px 0; color: #FF0000; }
 
-    /* Selection Header - Bold & Loud */
-    #selection-header { margin-top: 20px; }
-    h2 { font-size: 2.8em; margin: 0; font-weight: 900; color: #FFFF00; text-decoration: underline; }
-    .fee { font-size: 1.3em; margin: 10px 0 25px 0; color: #FFFF99; font-weight: bold; }
+    #selection-header { margin-top: 30px; }
+    h2 { font-size: 2em; margin: 0; font-weight: 900; color: #FFFF00; }
+    .fee { font-size: 1.1em; margin: 5px 0 20px 0; color: #FFFF99; font-weight: bold; }
 
-    .buttons { margin-bottom: 40px; }
+    .buttons { margin-bottom: 30px; display: flex; flex-direction: column; align-items: center; }
+    
     .buy-btn { 
-      display: block; margin: 15px auto; padding: 25px; background: #FFFF00; color: black; 
-      font-size: 2.2em; font-weight: 900; text-transform: uppercase; text-decoration: none; 
-      border-radius: 15px; width: 92%; max-width: 600px; 
+      display: block; 
+      margin: 10px 0; 
+      padding: 20px; 
+      background: #FFFF00; 
+      color: black; 
+      font-size: 1.8em; 
+      font-weight: 900; 
+      text-transform: uppercase; 
+      text-decoration: none; 
+      border-radius: 15px; 
+      width: 90%; 
+      max-width: 500px; 
     }
     .buy-btn.disabled { background: #444; color: #777; pointer-events: none; }
-    .lost-btn { display: block; margin: 40px auto; padding: 20px; background: #222; color: #FFFF00; font-size: 1.6em; text-decoration: none; border-radius: 12px; width: 85%; border: 2px solid #FFFF00; }
+    
+    .lost-btn { 
+      display: inline-block; 
+      margin-top: 20px; 
+      padding: 15px 25px; 
+      background: #222; 
+      color: #FFFF00; 
+      font-size: 1.3em; 
+      text-decoration: none; 
+      border-radius: 12px; 
+      border: 2px solid #FFFF00; 
+    }
+
+    @media (max-width: 400px) {
+      h1 { font-size: 2.1em; }
+      .id-text { font-size: 2.4em; }
+      h2 { font-size: 1.6em; }
+      .buy-btn { font-size: 1.5em; }
+    }
   </style>
 </head>
 <body>
+
   <h1>PAY! POINT! PLAY!</h1>
 
   <div id="machine-info">
     <span class="label-text">ONLY WORKS ON</span>
-    <span class="id-text">MACHINE:<span id="machine-id">...</span></span>
+    <span class="id-text">MACHINE: <span id="machine-id">...</span></span>
   </div>
 
   <div id="no-machine" style="display:none;">PLEASE SCAN MACHINE<br>QR CODE TO PLAY!</div>
@@ -52,7 +88,7 @@
     <a id="btn10" class="buy-btn" href="https://buy.stripe.com/test_28EbITbym0tR2ZL7QefMA04">10 PLAYS ($10.39)</a>
   </div>
 
-  <a id="lost-btn" class="lost-btn" href="https://tracreader.github.io/trac-qr-success/">Lost QR Code? Click to fetch it</a>
+  <a id="lost-btn" class="lost-btn" href="https://tracreader.github.io/trac-qr-success/">Lost QR Code? Click here</a>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
@@ -73,7 +109,6 @@
       document.getElementById('no-machine').style.display = 'block';
       document.getElementById('machine-info').style.display = 'none';
       document.getElementById('selection-header').style.display = 'none';
-      document.getElementById('lost-btn').style.display = 'none';
     } else {
       document.getElementById('machine-id').textContent = realMachineId;
       document.querySelectorAll('.buy-btn').forEach(btn => {
@@ -84,7 +119,7 @@
     }
 
     if (obfuscatedMid) {
-      const dummyUrl = window.location.pathname + "?session=" + Math.random().toString(36).substring(2, 10);
+      const dummyUrl = window.location.pathname + "?session=" + Math.random().toString(36).substring(2, 8);
       window.history.replaceState({}, document.title, dummyUrl);
     }
   </script>
