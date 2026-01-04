@@ -7,35 +7,34 @@
   <style>
     body { background: black; color: #FFFF00; font-family: Arial, sans-serif; text-align: center; padding: 20px; margin: 0; }
     
-    /* Forces one line and scales down if screen is too small */
+    /* Responsive Header: Scales with screen width so it never cuts off */
     h1 { 
-      font-size: 2.8em; 
+      font-size: 10vw; 
       margin: 20px 0; 
       font-weight: 900; 
-      white-space: nowrap; 
-      overflow: hidden;
-      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    #machine-info { margin: 20px 0; }
-    .label-text { font-size: 1.4em; font-weight: bold; color: #FFFFFF; display: block; }
-    .id-text { font-size: 3em; font-weight: 900; color: #FFFF00; margin-top: 5px; display: block; }
+    #machine-info { margin: 15px 0; line-height: 1.2; }
+    .label-text { font-size: 1.8em; font-weight: 900; color: #FFFFFF; display: block; }
+    .id-text { font-size: 2.5em; font-weight: 900; color: #FFFF00; display: block; }
 
     #no-machine { font-size: 1.8em; font-weight: bold; margin: 40px 0; color: #FF0000; }
 
-    #selection-header { margin-top: 30px; }
-    h2 { font-size: 2em; margin: 0; font-weight: 900; color: #FFFF00; }
-    .fee { font-size: 1.1em; margin: 5px 0 20px 0; color: #FFFF99; font-weight: bold; }
+    /* Selection Header: Proportional and Bold */
+    #selection-header { margin: 25px 0 15px 0; }
+    h2 { font-size: 2.4em; margin: 0; font-weight: 900; color: #FFFF00; }
+    .fee { font-size: 1.4em; margin-top: 5px; color: #FFFF99; font-weight: bold; }
 
-    .buttons { margin-bottom: 30px; display: flex; flex-direction: column; align-items: center; }
+    .buttons { display: flex; flex-direction: column; align-items: center; }
     
     .buy-btn { 
       display: block; 
       margin: 10px 0; 
-      padding: 20px; 
+      padding: 22px; 
       background: #FFFF00; 
       color: black; 
-      font-size: 1.8em; 
+      font-size: 2em; 
       font-weight: 900; 
       text-transform: uppercase; 
       text-decoration: none; 
@@ -43,25 +42,27 @@
       width: 90%; 
       max-width: 500px; 
     }
+    
     .buy-btn.disabled { background: #444; color: #777; pointer-events: none; }
     
+    /* Matched width with the buy buttons */
     .lost-btn { 
-      display: inline-block; 
-      margin-top: 20px; 
-      padding: 15px 25px; 
+      display: block; 
+      margin: 30px auto; 
+      padding: 20px; 
       background: #222; 
       color: #FFFF00; 
-      font-size: 1.3em; 
+      font-size: 1.5em; 
       text-decoration: none; 
-      border-radius: 12px; 
-      border: 2px solid #FFFF00; 
+      border-radius: 15px; 
+      width: 90%; 
+      max-width: 500px; 
+      border: 3px solid #FFFF00; 
+      box-sizing: border-box; /* Ensures border doesn't add to width */
     }
 
-    @media (max-width: 400px) {
-      h1 { font-size: 2.1em; }
-      .id-text { font-size: 2.4em; }
-      h2 { font-size: 1.6em; }
-      .buy-btn { font-size: 1.5em; }
+    @media (min-width: 600px) {
+      h1 { font-size: 3.5em; } /* Cap the size on tablets/desktops */
     }
   </style>
 </head>
@@ -86,9 +87,9 @@
     <a id="btn3" class="buy-btn" href="https://buy.stripe.com/test_14A8wH6e2a4r9o92vUfMA03">3 PLAYS ($3.39)</a>
     <a id="btn5" class="buy-btn" href="https://buy.stripe.com/test_6oUeV5aui1xV0RD1rQfMA00">5 PLAYS ($5.39)</a>
     <a id="btn10" class="buy-btn" href="https://buy.stripe.com/test_28EbITbym0tR2ZL7QefMA04">10 PLAYS ($10.39)</a>
+    
+    <a id="lost-btn" class="lost-btn" href="https://tracreader.github.io/trac-qr-success/">Lost QR Code? Click here</a>
   </div>
-
-  <a id="lost-btn" class="lost-btn" href="https://tracreader.github.io/trac-qr-success/">Lost QR Code? Click here</a>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
@@ -118,8 +119,9 @@
       });
     }
 
+    // Professional URL Masking
     if (obfuscatedMid) {
-      const dummyUrl = window.location.pathname + "?session=" + Math.random().toString(36).substring(2, 8);
+      const dummyUrl = window.location.pathname + "?v=" + Math.random().toString(36).substring(2, 7);
       window.history.replaceState({}, document.title, dummyUrl);
     }
   </script>
