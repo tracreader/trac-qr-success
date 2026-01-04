@@ -14,27 +14,41 @@
       white-space: nowrap;
     }
 
-    /* Machine Info: Forces labels to match the width of the ID */
-    #machine-info { 
-      display: inline-flex; 
-      flex-direction: column; 
-      align-items: center; 
-      margin-bottom: 20px; 
+    #machine-info { margin-bottom: 25px; display: inline-block; }
+    /* Hand-tuned font size to align margins */
+    .label-text { 
+        font-size: 2.3em; 
+        font-weight: 900; 
+        color: #FFFFFF; 
+        display: block; 
+        letter-spacing: -1px;
     }
-    .label-text { font-size: 1.4em; font-weight: 900; color: #FFFFFF; width: 100%; text-align: justify; text-align-last: justify; }
-    .id-text { font-size: 2.5em; font-weight: 900; color: #FFFF00; margin-top: 5px; }
+    .id-text { 
+        font-size: 2.5em; 
+        font-weight: 900; 
+        color: #FFFF00; 
+        display: block;
+        margin-top: -5px;
+    }
 
     #no-machine { font-size: 1.8em; font-weight: bold; margin: 40px 0; color: #FF0000; }
 
-    /* Selection Header: Aligns Play(s) with the Fee text */
-    #selection-header { 
-      display: inline-flex; 
-      flex-direction: column; 
-      align-items: center; 
-      margin: 25px 0 15px 0; 
+    #selection-header { margin: 25px 0 15px 0; display: inline-block; }
+    /* Hand-tuned font size to align margins */
+    h2 { 
+        font-size: 2.55em; 
+        margin: 0; 
+        font-weight: 900; 
+        color: #FFFF00; 
+        display: block;
+        letter-spacing: -1px;
     }
-    h2 { font-size: 2.2em; margin: 0; font-weight: 900; color: #FFFF00; width: 100%; text-align: justify; text-align-last: justify; }
-    .fee { font-size: 1.25em; margin-top: 5px; color: #FFFF99; font-weight: bold; white-space: nowrap; }
+    .fee { 
+        font-size: 1.25em; 
+        color: #FFFF99; 
+        font-weight: bold; 
+        display: block;
+    }
 
     .buttons { display: flex; flex-direction: column; align-items: center; }
     
@@ -56,7 +70,6 @@
     
     .buy-btn.disabled { background: #444; color: #777; pointer-events: none; }
     
-    /* Unique styling for Lost Button while maintaining identical width/shape */
     .lost-btn { 
       background: #222; 
       color: #FFFF00; 
@@ -119,6 +132,12 @@
         const url = new URL(btn.href);
         url.searchParams.set('client_reference_id', realMachineId);
         btn.href = url.toString();
+        
+        // Safety Net: Save the machine ID when a button is clicked
+        btn.onclick = function() {
+            localStorage.setItem('ppp_attempted_machine', realMachineId);
+            localStorage.setItem('ppp_attempted_time', Date.now());
+        };
       });
     }
 
