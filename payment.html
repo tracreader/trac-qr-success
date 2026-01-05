@@ -23,15 +23,19 @@
 </head>
 <body>
   <h1>PAY! POINT! PLAY!</h1>
+  
   <div id="machine-info">
     <span class="label-text">ONLY WORKS ON</span>
     <span class="id-text">MACHINE: <span id="machine-id">...</span></span>
   </div>
+
   <div id="no-machine" style="display:none;">PLEASE SCAN MACHINE<br>QR CODE TO PLAY!</div>
+
   <div id="selection-header">
     <h2>SELECT PLAY(S):</h2>
     <div class="fee">+$0.39 MOBILE PROCESSING FEE</div>
   </div>
+
   <div class="buttons">
     <a id="btn1" class="buy-btn" href="https://buy.stripe.com/test_9B63cn7i6b8vbwh7QefMA01">1 PLAY ($1.39)</a>
     <a id="btn3" class="buy-btn" href="https://buy.stripe.com/test_14A8wH6e2a4r9o92vUfMA03">3 PLAYS ($3.39)</a>
@@ -39,26 +43,50 @@
     <a id="btn10" class="buy-btn" href="https://buy.stripe.com/test_28EbITbym0tR2ZL7QefMA04">10 PLAYS ($10.39)</a>
     <a id="lost-btn" class="lost-btn" href="https://tracreader.github.io/trac-qr-success/">LOST QR CODE? CLICK TO FETCH</a>
   </div>
+
   <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const mid = urlParams.get('mid');
-    let realMachineId = mid ? mid.split('-')[0] : (localStorage.getItem('current_machine_id') || 'unknown');
-   
-    if (mid) localStorage.setItem('current_machine_id', realMachineId);
+    const obfuscatedMid = urlParams.get('mid');
+    let realMachineId = 'unknown';
 
+    // 1. EXTRACT ID AND SAVE TO STORAGE
+    if (obfuscatedMid) {
+      const lastDashIndex = obfuscatedMid.lastIndexOf('-');
+      realMachineId = lastDashIndex > 0 ? obfuscatedMid.substring(0, lastDashIndex) : obfuscatedMid;
+      localStorage.setItem('current_machine_id', realMachineId);
+    } else {
+      realMachineId = localStorage.getItem('current_machine_id') || 'unknown';
+    }
+
+    // 2. SETUP UI AND HANDSHAKE
     const machineSpan = document.getElementById('machine-id');
+    
     if (realMachineId === 'unknown') {
+      machineSpan.textContent = '---';
       document.querySelectorAll('.buy-btn, #machine-info, #selection-header, #lost-btn').forEach(el => el.style.display = 'none');
       document.getElementById('no-machine').style.display = 'block';
     } else {
       machineSpan.textContent = realMachineId;
       document.querySelectorAll('.buy-btn').forEach(btn => {
-        btn.href = btn.href + "?client_reference_id=" + realMachineId;
+        // Build Stripe URL with client_reference_id
+        const url = new URL(btn.href);
+        url.searchParams.set('client_reference_id', realMachineId);
+        btn.href = url.toString();
+        
+        // Handshake save on click
         btn.onclick = function() {
           localStorage.setItem('ppp_attempted_machine', realMachineId);
           localStorage.setItem('ppp_attempted_time', Date.now());
         };
       });
+
+      // 3. CLEAN URL WITH DUMMY VARIABLES
+      const cleanUrl = window.location.pathname +
+        "?status=ready" +
+        "&ref=" + Math.random().toString(36).substring(2, 10) +
+        "&payment_id=" + Date.now() + Math.floor(Math.random() * 10000) +
+        "&token=" + Math.random().toString(36).substring(2, 8);
+      window.history.replaceState({}, document.title, cleanUrl);
     }
   </script>
 </body>
