@@ -6,37 +6,58 @@
     <title>Success - Pay Point Play</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        body { background: black; color: #FFFF00; font-family: Arial, sans-serif; text-align: center; padding: 20px; margin: 0; }
-        #qrContainer { background: white; padding: 20px; display: inline-block; border-radius: 10px; position: relative; }
+        body { background: black; color: #FFFF00; font-family: Arial, sans-serif; text-align: center; padding: 20px; margin: 0; overflow-x: hidden; }
+        #qrContainer { background: white; padding: 20px; display: inline-block; border-radius: 10px; margin-top: 10px; }
         .plays-text { font-size: 2.5em; font-weight: 900; margin: 20px 0; color: #FFFF00; }
         #loading-screen { margin-top: 100px; font-size: 1.5em; color: #FFFF00; font-weight: bold; }
         #main-content { display: none; }
         
-        /* The Foggy Overlay */
-        #overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px);
-            display: flex; align-items: center; justify-content: center;
-            border-radius: 10px; cursor: pointer; z-index: 10;
+        /* THE ORIGINAL FULL-SCREEN OVERLAY */
+        #full-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            cursor: pointer;
         }
-        #overlay span { color: black; font-weight: 900; font-size: 1.2em; text-transform: uppercase; }
+        .overlay-card {
+            background: #FFFF00;
+            color: black;
+            padding: 40px;
+            border-radius: 20px;
+            font-weight: 900;
+            font-size: 1.5em;
+            text-transform: uppercase;
+            box-shadow: 0 0 30px rgba(255, 255, 0, 0.4);
+        }
     </style>
 </head>
 <body>
 
+    <div id="full-overlay" style="display: none;">
+        <div class="overlay-card">
+            CLICK TO REVEAL<br>& DOWNLOAD QR
+        </div>
+    </div>
+
     <div id="loading-screen">VERIFYING PAYMENT...</div>
 
     <div id="main-content">
-        <h1 style="font-size: 2.5em; font-weight: 900;">SUCCESSFUL!</h1>
+        <h1 style="font-size: 2.5em; font-weight: 900; margin-bottom: 0;">SUCCESSFUL!</h1>
         <div class="plays-text"><span id="plays-count">...</span> PLAYS LOADED</div>
         
         <div id="qrContainer">
             <div id="qrcode"></div>
-            <div id="overlay"><span>CLICK TO REVEAL<br>& DOWNLOAD QR</span></div>
         </div>
 
-        <div style="margin-top: 20px; color: white; font-weight: bold;">
-            CODE: <span id="code-text" style="color: #FFFF00;">...</span>
+        <div style="margin-top: 25px; color: white; font-weight: bold; font-size: 1.2em;">
+            SECRET CODE: <span id="code-text" style="color: #FFFF00;">...</span>
         </div>
     </div>
 
@@ -78,20 +99,25 @@
 
             const qrDiv = document.getElementById("qrcode");
             qrDiv.innerHTML = "";
-            new QRCode(qrDiv, { text: qrText, width: 280, height: 280, correctLevel: QRCode.CorrectLevel.H });
+            new QRCode(qrDiv, { 
+                text: qrText, 
+                width: 280, 
+                height: 280, 
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H 
+            });
 
-            // OVERLAY & DOWNLOAD LOGIC
-            const overlay = document.getElementById('overlay');
-            // Check if this specific code has already been downloaded in this tab session
-            const alreadyDownloaded = sessionStorage.getItem('dl_' + qrText);
+            // HANDLE THE OVERLAY DISPLAY
+            const overlay = document.getElementById('full-overlay');
+            const alreadyDone = sessionStorage.getItem('viewed_' + qrText);
             
-            if (alreadyDownloaded) {
-                overlay.remove();
-            } else {
+            if (!alreadyDone) {
+                overlay.style.display = 'flex';
                 overlay.onclick = function() {
                     triggerBrandedDownload(qrText, plays);
-                    sessionStorage.setItem('dl_' + qrText, 'true');
-                    this.remove();
+                    sessionStorage.setItem('viewed_' + qrText, 'true');
+                    overlay.style.display = 'none';
                 };
             }
         }
@@ -115,7 +141,7 @@
             
             const a = document.createElement('a');
             a.href = canvas.toDataURL('image/png');
-            a.download = `PayPointPlay-${plays}Plays-${Math.floor(1000 + Math.random()*9000)}.png`;
+            a.download = `PayPointPlay-${plays}Plays.png`;
             a.click();
         }
 
