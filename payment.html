@@ -46,47 +46,48 @@
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const obfuscatedMid = urlParams.get('mid');
+    const mid = urlParams.get('mid');
     let realMachineId = 'unknown';
 
-    // 1. EXTRACT ID AND SAVE TO STORAGE
-    if (obfuscatedMid) {
-      const lastDashIndex = obfuscatedMid.lastIndexOf('-');
-      realMachineId = lastDashIndex > 0 ? obfuscatedMid.substring(0, lastDashIndex) : obfuscatedMid;
+    // 1. EXTRACT MACHINE ID & PERSIST
+    if (mid) {
+      // Use hyphen to protect machine ID from dummy variables
+      const hyphenIndex = mid.indexOf('-');
+      realMachineId = hyphenIndex > 0 ? mid.substring(0, hyphenIndex) : mid;
       localStorage.setItem('current_machine_id', realMachineId);
     } else {
       realMachineId = localStorage.getItem('current_machine_id') || 'unknown';
     }
 
-    // 2. SETUP UI AND HANDSHAKE
     const machineSpan = document.getElementById('machine-id');
-    
+
+    // 2. LOGIC FOR VALID VS INVALID MACHINE
     if (realMachineId === 'unknown') {
-      machineSpan.textContent = '---';
       document.querySelectorAll('.buy-btn, #machine-info, #selection-header, #lost-btn').forEach(el => el.style.display = 'none');
       document.getElementById('no-machine').style.display = 'block';
     } else {
       machineSpan.textContent = realMachineId;
+
+      // 3. RE-ESTABLISH HANDSHAKE (So "Lost QR" button works instantly)
+      localStorage.setItem('ppp_attempted_machine', realMachineId);
+      localStorage.setItem('ppp_attempted_time', Date.now());
+
+      // 4. ATTACH MACHINE ID TO STRIPE BUTTONS
       document.querySelectorAll('.buy-btn').forEach(btn => {
-        // Build Stripe URL with client_reference_id
         const url = new URL(btn.href);
         url.searchParams.set('client_reference_id', realMachineId);
         btn.href = url.toString();
-        
-        // Handshake save on click
-        btn.onclick = function() {
-          localStorage.setItem('ppp_attempted_machine', realMachineId);
-          localStorage.setItem('ppp_attempted_time', Date.now());
-        };
       });
 
-      // 3. CLEAN URL WITH DUMMY VARIABLES
-      const cleanUrl = window.location.pathname +
-        "?status=ready" +
-        "&ref=" + Math.random().toString(36).substring(2, 10) +
-        "&payment_id=" + Date.now() + Math.floor(Math.random() * 10000) +
-        "&token=" + Math.random().toString(36).substring(2, 8);
-      window.history.replaceState({}, document.title, cleanUrl);
+      // 5. CLEAN URL WITH DUMMY VARIABLES (ONLY if we arrived via a scan)
+      if (mid) {
+        const cleanUrl = window.location.pathname +
+          "?status=ready" +
+          "&ref=" + Math.random().toString(36).substring(2, 10) +
+          "&payment_id=" + Date.now() + Math.floor(Math.random() * 10000) +
+          "&token=" + Math.random().toString(36).substring(2, 8);
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
     }
   </script>
 </body>
