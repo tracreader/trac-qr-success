@@ -41,7 +41,7 @@
     <a id="btn3" class="buy-btn" href="https://buy.stripe.com/test_14A8wH6e2a4r9o92vUfMA03">3 PLAYS ($3.39)</a>
     <a id="btn5" class="buy-btn" href="https://buy.stripe.com/test_6oUeV5aui1xV0RD1rQfMA00">5 PLAYS ($5.39)</a>
     <a id="btn10" class="buy-btn" href="https://buy.stripe.com/test_28EbITbym0tR2ZL7QefMA04">10 PLAYS ($10.39)</a>
-    <a id="lost-btn" class="lost-btn" href="https://tracreader.github.io/trac-qr-success/">LOST QR CODE? CLICK TO FETCH</a>
+    <a id="lost-btn" class="lost-btn" href="https://paypointplay.com/play">LOST QR CODE? CLICK TO FETCH</a>
   </div>
 
   <script>
@@ -51,8 +51,6 @@
 
     // 1. EXTRACT MACHINE ID & PERSIST
     if (mid) {
-      // FIX FOR FREE CODE: If this is a brand new scan (URL has mid), 
-      // wipe any old handshake data so they can't "inherit" a previous payment.
       localStorage.removeItem('ppp_attempted_machine');
       localStorage.removeItem('ppp_attempted_time');
 
@@ -79,16 +77,15 @@
         btn.href = url.toString();
 
         // 4. SET HANDSHAKE ONLY WHEN THEY CLICK BUY
-        // This makes "Fetch" work if they refresh Stripe, but keeps it empty for new people.
         btn.onclick = function() {
           localStorage.setItem('ppp_attempted_machine', realMachineId);
           localStorage.setItem('ppp_attempted_time', Date.now());
         };
       });
 
-      // 5. CLEAN URL WITH DUMMY VARIABLES
+      // 5. CLEAN URL WITH DUMMY VARIABLES (Updated for /pay folder)
       if (mid) {
-        const cleanUrl = window.location.pathname +
+        const cleanUrl = "/pay/" +
           "?status=ready" +
           "&ref=" + Math.random().toString(36).substring(2, 10) +
           "&payment_id=" + Date.now() + Math.floor(Math.random() * 10000) +
