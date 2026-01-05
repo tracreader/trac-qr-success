@@ -6,93 +6,119 @@
     <title>Success - Pay Point Play</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        body { background: black; color: #FFFF00; font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-        #qrContainer { background: white; padding: 20px; display: inline-block; margin-top: 20px; border-radius: 10px; }
-        .info { margin-top: 20px; font-size: 1.2em; color: white; }
-        .plays-text { font-size: 2em; font-weight: bold; margin: 10px 0; color: #FFFF00; }
-        #loading-screen { margin-top: 100px; font-size: 1.5em; }
+        body { background: black; color: #FFFF00; font-family: Arial, sans-serif; text-align: center; padding: 20px; margin: 0; }
+        #qrContainer { background: white; padding: 20px; display: inline-block; border-radius: 10px; position: relative; }
+        .plays-text { font-size: 2.5em; font-weight: 900; margin: 20px 0; color: #FFFF00; }
+        #loading-screen { margin-top: 100px; font-size: 1.5em; color: #FFFF00; font-weight: bold; }
         #main-content { display: none; }
+        
+        /* The Foggy Overlay */
+        #overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px);
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 10px; cursor: pointer; z-index: 10;
+        }
+        #overlay span { color: black; font-weight: 900; font-size: 1.2em; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
-    <div id="loading-screen">Verifying Payment...</div>
+    <div id="loading-screen">VERIFYING PAYMENT...</div>
 
     <div id="main-content">
-        <h1>PAYMENT SUCCESSFUL!</h1>
+        <h1 style="font-size: 2.5em; font-weight: 900;">SUCCESSFUL!</h1>
         <div class="plays-text"><span id="plays-count">...</span> PLAYS LOADED</div>
-        <div id="qrContainer"></div>
-        <div class="info">
-            <strong>CODE:</strong> <span id="code-text">...</span><br>
-            <p>Scan this at the machine to play.</p>
+        
+        <div id="qrContainer">
+            <div id="qrcode"></div>
+            <div id="overlay"><span>CLICK TO REVEAL<br>& DOWNLOAD QR</span></div>
+        </div>
+
+        <div style="margin-top: 20px; color: white; font-weight: bold;">
+            CODE: <span id="code-text" style="color: #FFFF00;">...</span>
         </div>
     </div>
 
     <script>
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwjaGbQwD5teEFye6ne9XT9LWw7IsMDBNcbuh1TX--3LlyRKwSrj_mDSC2en7zlqyMe/exec";
-
         const urlParams = new URLSearchParams(window.location.search);
         const sessionId = urlParams.get('session_id');
         const recoveryMid = localStorage.getItem('ppp_attempted_machine');
 
         async function startFlow() {
-            // 1. If we have no session and no handshake, check for a PREVIOUSly saved QR
             if (!sessionId && !recoveryMid) {
                 const savedQR = localStorage.getItem('last_paid_qr');
                 const savedPlays = localStorage.getItem('last_paid_plays');
-                
-                if (savedQR) {
-                    displayQR(savedQR, savedPlays);
-                } else {
-                    document.getElementById('loading-screen').innerHTML = "No recent purchase found.<br>Please scan a machine QR to start.";
-                }
+                if (savedQR) displayQR(savedQR, savedPlays);
+                else document.getElementById('loading-screen').textContent = "NO RECENT PURCHASE FOUND.";
                 return;
             }
 
-            // 2. Otherwise, look for the NEW payment in the Google Sheet
             try {
                 const query = sessionId ? `session_id=${sessionId}` : `recovery_mid=${recoveryMid}`;
                 const response = await fetch(`${APPS_SCRIPT_URL}?${query}`);
                 const data = await response.json();
 
                 if (data.qr_code) {
-                    // SAVE IT: This overrides the old one and stays on the phone
                     localStorage.setItem('last_paid_qr', data.qr_code);
                     localStorage.setItem('last_paid_plays', data.plays);
-                    
                     displayQR(data.qr_code, data.plays);
                 } else {
-                    // Not in sheet yet? Wait 3 seconds and try again
                     setTimeout(startFlow, 3000);
                 }
-            } catch (err) {
-                console.error("Fetch error:", err);
-                setTimeout(startFlow, 5000);
-            }
+            } catch (err) { setTimeout(startFlow, 5000); }
         }
 
         function displayQR(qrText, plays) {
-            // Hide loading, show content
             document.getElementById('loading-screen').style.display = 'none';
             document.getElementById('main-content').style.display = 'block';
-
-            // Set text
             document.getElementById('code-text').textContent = qrText;
-            document.getElementById('plays-count').textContent = plays || "?";
+            document.getElementById('plays-count').textContent = plays || "1";
 
-            // Clear old QR and generate new one
-            document.getElementById('qrContainer').innerHTML = "";
-            new QRCode(document.getElementById("qrContainer"), {
-                text: qrText,
-                width: 256,
-                height: 256,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
-            });
+            const qrDiv = document.getElementById("qrcode");
+            qrDiv.innerHTML = "";
+            new QRCode(qrDiv, { text: qrText, width: 280, height: 280, correctLevel: QRCode.CorrectLevel.H });
+
+            // OVERLAY & DOWNLOAD LOGIC
+            const overlay = document.getElementById('overlay');
+            // Check if this specific code has already been downloaded in this tab session
+            const alreadyDownloaded = sessionStorage.getItem('dl_' + qrText);
+            
+            if (alreadyDownloaded) {
+                overlay.remove();
+            } else {
+                overlay.onclick = function() {
+                    triggerBrandedDownload(qrText, plays);
+                    sessionStorage.setItem('dl_' + qrText, 'true');
+                    this.remove();
+                };
+            }
         }
 
-        // Run on load
+        function triggerBrandedDownload(text, plays) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 440; canvas.height = 520;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = 'white'; ctx.fillRect(0, 0, 440, 520);
+            
+            const qrCanvas = document.querySelector('#qrcode canvas');
+            if (qrCanvas) ctx.drawImage(qrCanvas, 40, 40, 360, 360);
+            
+            ctx.fillStyle = 'black';
+            ctx.font = 'bold 26px Arial'; ctx.textAlign = 'center';
+            ctx.fillText(text, 220, 450);
+            
+            ctx.font = '20px Arial';
+            ctx.fillText(plays + " PLAYS LOADED", 220, 485);
+            
+            const a = document.createElement('a');
+            a.href = canvas.toDataURL('image/png');
+            a.download = `PayPointPlay-${plays}Plays-${Math.floor(1000 + Math.random()*9000)}.png`;
+            a.click();
+        }
+
         startFlow();
     </script>
 </body>
